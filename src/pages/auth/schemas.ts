@@ -5,14 +5,22 @@ import type { GoogleCompletarRegistroRequest, RegistroRequest } from '../../type
 const ROLES = ['TERAPEUTA', 'FAMILIAR'] as const
 
 /**
- * Patrón de password del backend (UsarioRegistroDTO): min 8, debe contener
- * mayúscula, minúscula, dígito y carácter especial. Espejo del regex del Swagger.
+ * Piezas del patrón de password del backend (UsarioRegistroDTO) — espejo del
+ * regex del Swagger. Se exportan por separado para que el checklist en vivo
+ * del registro use EXACTAMENTE las mismas reglas que la validación de submit.
  */
-const PASSWORD_PATTERN =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/
+export const PASSWORD_MIN_LENGTH = 8
+export const PASSWORD_LOWER = /[a-z]/
+export const PASSWORD_UPPER = /[A-Z]/
+export const PASSWORD_DIGIT = /\d/
+export const PASSWORD_SYMBOL = /[^A-Za-z0-9]/
 
-const PASSWORD_MSG =
-  'Mínimo 8 caracteres, con mayúscula, minúscula, número y símbolo'
+/** Patrón completo del password: min 8, mayúscula, minúscula, dígito y símbolo. */
+const PASSWORD_PATTERN = new RegExp(
+  `^(?=.*${PASSWORD_LOWER.source})(?=.*${PASSWORD_UPPER.source})(?=.*${PASSWORD_DIGIT.source})(?=.*${PASSWORD_SYMBOL.source}).{${PASSWORD_MIN_LENGTH},}$`,
+)
+
+const PASSWORD_MSG = `Mínimo ${PASSWORD_MIN_LENGTH} caracteres, con mayúscula, minúscula, número y símbolo`
 
 /**
  * Formulario de login: POST /auth/login.
