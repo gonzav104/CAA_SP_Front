@@ -11,18 +11,14 @@ import { DetalleSkeleton, ErrorCarga } from '../../components/estados'
 import { LabelPacienteContexto } from '../../components/LabelPacienteContexto'
 import { usePaciente } from '../../hooks/pacientes'
 import { useActualizarSesion, useSesion } from '../../hooks/sesiones'
-import { useAuth } from '../../hooks/useAuth'
 import { nombreCompleto } from '../../lib/paciente'
 import { formatError } from '../../lib/utils'
 import { sesionSchema, toSesionInput, toSesionValues, type SesionValues } from './schemas'
 
 /**
  * Formulario de edición de sesión (/pacientes/:pacienteId/sesiones/:idSesion/editar, RI-7).
- * Carga la sesión desde la lista (el backend NO expone GET individual).
- *
- * NOTA: el backend actual (Swagger :8080) NO expone PUT /sesiones/{id}, por lo
- * que esta pantalla está lista para cuando lo agreguen; mientras tanto no se
- * enruta desde la UI de ListaSesiones. PUT + navigate back.
+ * Carga la sesión por GET individual (/sesiones/{id}). Ruta protegida por
+ * RequiereTerapeuta en el router (solo TERAPEUTA). PUT + navigate back.
  */
 export function EditarSesion() {
   const { pacienteId, idSesion } = useParams<{ pacienteId: string; idSesion: string }>()
@@ -30,10 +26,8 @@ export function EditarSesion() {
   const sid = idSesion
   const idsValidos = pid !== undefined && pid.trim() !== '' && sid !== undefined && sid.trim() !== ''
   const navigate = useNavigate()
-  const { usuario } = useAuth()
-  const esTerapeuta = usuario?.rol === 'TERAPEUTA'
   const pacienteQuery = usePaciente(idsValidos ? pid : undefined)
-  const sesionQuery = useSesion(idsValidos ? pid : undefined, idsValidos ? sid : undefined, esTerapeuta)
+  const sesionQuery = useSesion(idsValidos ? pid : undefined, idsValidos ? sid : undefined)
   const actualizar = useActualizarSesion()
 
   const sesion = sesionQuery.data

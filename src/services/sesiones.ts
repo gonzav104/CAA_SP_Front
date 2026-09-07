@@ -18,6 +18,12 @@ export async function crearSesion(pacienteId: string, input: SesionInput): Promi
   return data
 }
 
+/** GET /api/pacientes/{id}/sesiones/{sesionId} — sesión puntual. */
+export async function obtenerSesion(pacienteId: string, sesionId: string): Promise<Sesion> {
+  const { data } = await api.get<Sesion>(`/api/pacientes/${pacienteId}/sesiones/${sesionId}`)
+  return data
+}
+
 /** PUT /api/pacientes/{id}/sesiones/{sesionId} — actualiza la sesión. */
 export async function actualizarSesion(
   pacienteId: string,

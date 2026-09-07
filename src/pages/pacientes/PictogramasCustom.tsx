@@ -37,7 +37,8 @@ import {
   usePictogramasCustom,
   useSubirPictogramaCustom,
 } from '../../hooks/pictogramas-custom'
-import { nombreCompleto } from '../../lib/paciente'
+import { useAuth } from '../../hooks/useAuth'
+import { nombreCompleto, puedeEditarPaciente } from '../../lib/paciente'
 import { formatError } from '../../lib/utils'
 import type { PictogramaCustom } from '../../types'
 
@@ -59,7 +60,11 @@ export function PictogramasCustom() {
   const { pacienteId } = useParams<{ pacienteId: string }>()
   const id = pacienteId
   const idValido = id !== undefined && id.trim() !== ''
+  const { usuario } = useAuth()
+  const esTerapeuta = usuario?.rol === 'TERAPEUTA'
   const pacienteQuery = usePaciente(idValido ? id : undefined)
+  // Puede subir/editar: terapeuta o familiar con permiso EDICION_LIMITADA.
+  const puedeEditar = puedeEditarPaciente(esTerapeuta, pacienteQuery.data?.miPermiso)
   const pictogramasQuery = usePictogramasCustom(idValido ? id : undefined)
   const subir = useSubirPictogramaCustom()
   const eliminar = useEliminarPictogramaCustom()
@@ -117,13 +122,15 @@ export function PictogramasCustom() {
             Imágenes propias de este paciente para usar en sus cartillas.
           </p>
         </div>
-        <Button
-          className="bg-blue-600 text-white hover:bg-blue-700"
-          onClick={() => setDialogoAbierto(true)}
-        >
-          <Upload aria-hidden="true" />
-          Subir pictograma
-        </Button>
+        {puedeEditar && (
+          <Button
+            className="bg-blue-600 text-white hover:bg-blue-700"
+            onClick={() => setDialogoAbierto(true)}
+          >
+            <Upload aria-hidden="true" />
+            Subir pictograma
+          </Button>
+        )}
       </div>
 
       {pictogramasQuery.isPending && (
@@ -151,6 +158,7 @@ export function PictogramasCustom() {
           titulo="Sin pictogramas custom"
           descripcion="Subí imágenes propias del paciente para usarlas en sus cartillas."
         >
+          {puedeEditar && (
           <Button
             className="bg-blue-600 text-white hover:bg-blue-700"
             onClick={() => setDialogoAbierto(true)}
@@ -158,7 +166,8 @@ export function PictogramasCustom() {
             <Upload aria-hidden="true" />
             Subir pictograma
           </Button>
-        </CardVacio>
+        )}
+      </CardVacio>
       )}
 
       {pictogramasQuery.isSuccess && pictogramasQuery.data.length > 0 && (
@@ -175,46 +184,48 @@ export function PictogramasCustom() {
                   <span className="min-w-0 truncate text-sm font-medium text-foreground">
                     {pictograma.etiqueta}
                   </span>
-                  <AlertDialog
-                    open={aEliminar?.id === pictograma.id}
-                    onOpenChange={(abierto) => {
-                      if (!abierto) setAEliminar(null)
-                    }}
-                  >
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Eliminar pictograma ${pictograma.etiqueta}`}
-                        className="shrink-0 text-destructive hover:text-destructive"
-                        onClick={() => setAEliminar(pictograma)}
-                      >
-                        <Trash2 aria-hidden="true" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar pictograma?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Se eliminará «{pictograma.etiqueta}». Los items que lo usan podrían
-                          quedarse sin imagen. Esta acción no se puede deshacer.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel disabled={eliminar.isPending}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          variant="destructive"
-                          disabled={eliminar.isPending}
-                          onClick={(event) => {
-                            event.preventDefault()
-                            void confirmarEliminar()
-                          }}
+                  {esTerapeuta && (
+                    <AlertDialog
+                      open={aEliminar?.id === pictograma.id}
+                      onOpenChange={(abierto) => {
+                        if (!abierto) setAEliminar(null)
+                      }}
+                    >
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Eliminar pictograma ${pictograma.etiqueta}`}
+                          className="shrink-0 text-destructive hover:text-destructive"
+                          onClick={() => setAEliminar(pictograma)}
                         >
-                          {eliminar.isPending ? 'Eliminando…' : 'Eliminar'}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          <Trash2 aria-hidden="true" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar pictograma?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Se eliminará «{pictograma.etiqueta}». Los items que lo usan podrían
+                            quedarse sin imagen. Esta acción no se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={eliminar.isPending}>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            variant="destructive"
+                            disabled={eliminar.isPending}
+                            onClick={(event) => {
+                              event.preventDefault()
+                              void confirmarEliminar()
+                            }}
+                          >
+                            {eliminar.isPending ? 'Eliminando…' : 'Eliminar'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </CardContent>
             </Card>

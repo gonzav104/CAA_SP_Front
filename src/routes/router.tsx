@@ -66,10 +66,21 @@ export const router = createBrowserRouter([
                 element: <EditorCartilla />,
               },
               { path: 'pacientes/:pacienteId/sesiones', element: <ListaSesiones /> },
-              { path: 'pacientes/:pacienteId/sesiones/nuevo', element: <NuevaSesion /> },
+              {
+                path: 'pacientes/:pacienteId/sesiones/nuevo',
+                element: (
+                  <RequiereTerapeuta>
+                    <NuevaSesion />
+                  </RequiereTerapeuta>
+                ),
+              },
               {
                 path: 'pacientes/:pacienteId/sesiones/:idSesion/editar',
-                element: <EditarSesion />,
+                element: (
+                  <RequiereTerapeuta>
+                    <EditarSesion />
+                  </RequiereTerapeuta>
+                ),
               },
               {
                 path: 'pacientes/:pacienteId/colaboradores',
@@ -77,7 +88,11 @@ export const router = createBrowserRouter([
               },
               {
                 path: 'pacientes/:pacienteId/colaboradores/agregar',
-                element: <AgregarColaborador />,
+                element: (
+                  <RequiereTerapeuta>
+                    <AgregarColaborador />
+                  </RequiereTerapeuta>
+                ),
               },
               {
                 path: 'pacientes/:pacienteId/pictogramas',

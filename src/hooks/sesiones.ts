@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { formatError } from '../lib/utils'
 import * as sesionesService from '../services/sesiones'
-import type { Sesion, SesionInput } from '../types'
+import type { SesionInput } from '../types'
 import { pacienteKeys } from './queryKeys'
 
 /**
@@ -28,21 +28,22 @@ export function useSesiones(pacienteId: string | undefined, esTerapeuta: boolean
 }
 
 /**
- * Sesión puntual desde la lista (el backend no expone GET individual de sesión;
- * se busca en el arreglo de sesiones del paciente). Devuelve undefined mientras
- * carga o si no se encuentra el id.
+ * Sesión puntual (GET /api/pacientes/{id}/sesiones/{sesionId}).
+ * La ruta /sesiones/:id/editar está protegida por RequiereTerapeuta en el
+ * router, por lo que este hook asume rol TERAPEUTA validado.
+ * Devuelve undefined mientras carga o si no se encuentra el id.
  */
-export function useSesion(
-  pacienteId: string | undefined,
-  sesionId: string | undefined,
-  esTerapeuta: boolean,
-) {
-  const lista = useSesiones(pacienteId, esTerapeuta)
-  const sesion = lista.data?.find((s) => s.id === sesionId)
-  return {
-    ...lista,
-    data: sesion as Sesion | undefined,
-  }
+export function useSesion(pacienteId: string | undefined, sesionId: string | undefined) {
+  return useQuery({
+    queryKey: [...pacienteKeys.sesiones(pacienteId ?? ''), 'detalle', sesionId ?? ''],
+    queryFn: () => {
+      if (pacienteId === undefined || sesionId === undefined) {
+        throw new Error('useSesion requiere pacienteId y sesionId válidos')
+      }
+      return sesionesService.obtenerSesion(pacienteId, sesionId)
+    },
+    enabled: pacienteId !== undefined && sesionId !== undefined,
+  })
 }
 
 /** Creación de sesión (POST): invalida la lista y avisa con toast. */

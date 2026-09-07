@@ -1,8 +1,18 @@
-import type { Paciente } from '../types'
+import type { Paciente, Permiso } from '../types'
 
 /** Nombre completo legible («Ana García», o «Ana» si no hay apellido). */
 export function nombreCompleto(paciente: Pick<Paciente, 'nombre' | 'apellido'>): string {
   return [paciente.nombre, paciente.apellido].filter(Boolean).join(' ')
+}
+
+/**
+ * ¿Puede el usuario actual EDITAR contenido del paciente (pictogramas custom,
+ * items de cartillas, etc.)? Regla de dominio: un TERAPEUTA siempre puede; un
+ * FAMILIAR solo si tiene permiso EDICION_LIMITADA sobre ese paciente.
+ * (Eliminar recursos es más restrictivo: ver esTerapeuta directo.)
+ */
+export function puedeEditarPaciente(esTerapeuta: boolean, miPermiso: Permiso | undefined): boolean {
+  return esTerapeuta || miPermiso === 'EDICION_LIMITADA'
 }
 
 /** Iniciales para chips/avatares (p.ej. «Ana María» → «AM»). */

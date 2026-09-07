@@ -1,26 +1,34 @@
-import { CalendarDays, Plus } from 'lucide-react'
+import { CalendarDays, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../components/ui/alert-dialog'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
 import { CardVacio, ErrorCarga, FilasSkeleton } from '../../components/estados'
-import { useSesiones } from '../../hooks/sesiones'
+import { useEliminarSesion, useSesiones } from '../../hooks/sesiones'
 import { usePaciente } from '../../hooks/pacientes'
 import { useAuth } from '../../hooks/useAuth'
 import { formatearFechaISO, nombreCompleto } from '../../lib/paciente'
 import { cn, formatError } from '../../lib/utils'
 import { LabelPacienteContexto } from '../../components/LabelPacienteContexto'
+import type { Sesion } from '../../types'
 
 /**
  * Lista de sesiones de un paciente en su propia página (/pacientes/:pacienteId/sesiones,
  * RI-6). Header con nombre del paciente, botón «Nueva sesión», cards con
- * fechaHora + disposicion + objetivos.
- *
- * NOTA: el backend (Swagger :8080) solo expone GET/POST en /sesiones — NO hay
- * PUT/DELETE por sesión. Por eso esta pantalla es de listado + alta, sin
- * acciones Editar/Eliminar (no hay endpoint que las sirva). Si el backend
- * agrega PUT/DELETE, se habilitan acá (los servicios/hooks ya existen).
+ * fechaHora + disposicion + objetivos. Acciones Editar (link a /editar) y
+ * Eliminar con confirmación (RI-8) — PUT/DELETE contra /sesiones/{id}.
  *
  * SOLO TERAPEUTA (las rutas de sesiones son inaccesibles para FAMILIAR).
  */
@@ -32,11 +40,23 @@ export function ListaSesiones() {
   const esTerapeuta = usuario?.rol === 'TERAPEUTA'
   const pacienteQuery = usePaciente(idValido ? id : undefined)
   const sesionesQuery = useSesiones(idValido ? id : undefined, esTerapeuta)
+  const eliminar = useEliminarSesion()
   // Por sesión: si el detalle está expandido (ver texto completo).
   const [expandidas, setExpandidas] = useState<Record<string, boolean>>({})
+  const [aEliminar, setAEliminar] = useState<Sesion | null>(null)
 
   const toggleExpandida = (sesionId: string) =>
     setExpandidas((prev) => ({ ...prev, [sesionId]: !prev[sesionId] }))
+
+  const confirmarEliminar = async () => {
+    if (!aEliminar || !idValido) return
+    try {
+      await eliminar.mutateAsync({ pacienteId: id, sesionId: aEliminar.id })
+      setAEliminar(null)
+    } catch {
+      // El error ya se muestra como toast desde useEliminarSesion.
+    }
+  }
 
   // Guard de rol a nivel de página: un FAMILIAR jamás ve la gestión de
   // sesiones (RI-6) — se lo redirige a su dashboard (/familiar).
@@ -136,6 +156,58 @@ export function ListaSesiones() {
                     {sesion.disposicion}
                   </Badge>
                 )}
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    asChild
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Editar sesión del ${formatearFechaISO(sesion.fechaHora)}`}
+                  >
+                    <Link to={`/pacientes/${id}/sesiones/${sesion.id}/editar`}>
+                      <Pencil aria-hidden="true" />
+                    </Link>
+                  </Button>
+                  <AlertDialog
+                    open={aEliminar?.id === sesion.id}
+                    onOpenChange={(abierto) => {
+                      if (!abierto) setAEliminar(null)
+                    }}
+                  >
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Eliminar sesión del ${formatearFechaISO(sesion.fechaHora)}`}
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => setAEliminar(sesion)}
+                      >
+                        <Trash2 aria-hidden="true" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar sesión?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Se eliminará la sesión del {formatearFechaISO(sesion.fechaHora)}. Esta
+                          acción no se puede deshacer.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={eliminar.isPending}>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          variant="destructive"
+                          disabled={eliminar.isPending}
+                          onClick={(event) => {
+                            event.preventDefault()
+                            void confirmarEliminar()
+                          }}
+                        >
+                          {eliminar.isPending ? 'Eliminando…' : 'Eliminar'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </CardContent>
             </Card>
           ))}
