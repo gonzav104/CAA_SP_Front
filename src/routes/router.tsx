@@ -1,27 +1,68 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
-import type { ReactElement } from 'react'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
+import { lazy, Suspense, type ReactElement } from 'react'
 import { ErrorElement } from '../components/ErrorElement'
+import { LoadingScreen } from '../components/LoadingScreen'
 import { ProtectedRoute } from '../components/ProtectedRoute'
 import { DashboardLayout } from '../layouts/DashboardLayout'
-import { Login } from '../pages/auth/Login'
-import { Registro } from '../pages/auth/Registro'
-import { CartillaView } from '../pages/cartillas/CartillaView'
-import { EditorCartilla } from '../pages/cartillas/EditorCartilla'
-import { ListaCartillas } from '../pages/cartillas/ListaCartillas'
-import { AgregarColaborador } from '../pages/colaboradores/AgregarColaborador'
-import { ListaColaboradores } from '../pages/colaboradores/ListaColaboradores'
-import { FamiliarDashboard } from '../pages/familiar/FamiliarDashboard'
-import { ModoUso } from '../pages/modo-uso/ModoUso'
-import { EditarPaciente } from '../pages/pacientes/EditarPaciente'
-import { ListaPacientes } from '../pages/pacientes/Lista'
-import { NuevoPaciente } from '../pages/pacientes/NuevoPaciente'
-import { PacienteDetalle } from '../pages/pacientes/PacienteDetalle'
-import { PictogramasCustom } from '../pages/pacientes/PictogramasCustom'
-import { EditarSesion } from '../pages/sesiones/EditarSesion'
-import { ListaSesiones } from '../pages/sesiones/ListaSesiones'
-import { NuevaSesion } from '../pages/sesiones/NuevaSesion'
 import { RedirectPorRol } from './RedirectPorRol'
 import { useAuth } from '../hooks/useAuth'
+
+/**
+ * Code-splitting (Fix 6): cada página es un chunk separado vía React.lazy.
+ * - ModoUso (Zona B) es el chunk con más prioridad de separación: el chico
+ *   entra directo a /uso/... y no debe pagar el bundle del dashboard completo.
+ * - Infraestructura (ErrorElement, ProtectedRoute, DashboardLayout, guards,
+ *   RedirectPorRol) queda EAGER: es chica y se necesita en toda navegación.
+ * - Un solo <Suspense> como layout-route envuelve todas las rutas con
+ *   <Outlet/>; mientras un chunk carga se muestra <LoadingScreen/>.
+ */
+const Login = lazy(() => import('../pages/auth/Login').then((m) => ({ default: m.Login })))
+const Registro = lazy(() => import('../pages/auth/Registro').then((m) => ({ default: m.Registro })))
+const CartillaView = lazy(() =>
+  import('../pages/cartillas/CartillaView').then((m) => ({ default: m.CartillaView })),
+)
+const EditorCartilla = lazy(() =>
+  import('../pages/cartillas/EditorCartilla').then((m) => ({ default: m.EditorCartilla })),
+)
+const ListaCartillas = lazy(() =>
+  import('../pages/cartillas/ListaCartillas').then((m) => ({ default: m.ListaCartillas })),
+)
+const AgregarColaborador = lazy(() =>
+  import('../pages/colaboradores/AgregarColaborador').then((m) => ({ default: m.AgregarColaborador })),
+)
+const ListaColaboradores = lazy(() =>
+  import('../pages/colaboradores/ListaColaboradores').then((m) => ({
+    default: m.ListaColaboradores,
+  })),
+)
+const FamiliarDashboard = lazy(() =>
+  import('../pages/familiar/FamiliarDashboard').then((m) => ({ default: m.FamiliarDashboard })),
+)
+const ModoUso = lazy(() => import('../pages/modo-uso/ModoUso').then((m) => ({ default: m.ModoUso })))
+const EditarPaciente = lazy(() =>
+  import('../pages/pacientes/EditarPaciente').then((m) => ({ default: m.EditarPaciente })),
+)
+const ListaPacientes = lazy(() =>
+  import('../pages/pacientes/Lista').then((m) => ({ default: m.ListaPacientes })),
+)
+const NuevoPaciente = lazy(() =>
+  import('../pages/pacientes/NuevoPaciente').then((m) => ({ default: m.NuevoPaciente })),
+)
+const PacienteDetalle = lazy(() =>
+  import('../pages/pacientes/PacienteDetalle').then((m) => ({ default: m.PacienteDetalle })),
+)
+const PictogramasCustom = lazy(() =>
+  import('../pages/pacientes/PictogramasCustom').then((m) => ({ default: m.PictogramasCustom })),
+)
+const EditarSesion = lazy(() =>
+  import('../pages/sesiones/EditarSesion').then((m) => ({ default: m.EditarSesion })),
+)
+const ListaSesiones = lazy(() =>
+  import('../pages/sesiones/ListaSesiones').then((m) => ({ default: m.ListaSesiones })),
+)
+const NuevaSesion = lazy(() =>
+  import('../pages/sesiones/NuevaSesion').then((m) => ({ default: m.NuevaSesion })),
+)
 
 /**
  * Data router de la app (D1).
@@ -37,10 +78,16 @@ import { useAuth } from '../hooks/useAuth'
  *   ProtectedRoute — fuera del DashboardLayout (D7): el chico no hereda sidebar
  *   ni navbar del dashboard.
  * - errorElement raíz: página sobria para errores inesperados.
+ * - Suspense layout-route: fallback <LoadingScreen/> mientras carga un chunk.
  */
 export const router = createBrowserRouter([
   {
     errorElement: <ErrorElement />,
+    element: (
+      <Suspense fallback={<LoadingScreen />}>
+        <Outlet />
+      </Suspense>
+    ),
     children: [
       { path: '/login', element: <Login /> },
       { path: '/registro', element: <Registro /> },
