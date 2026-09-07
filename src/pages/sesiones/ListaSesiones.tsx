@@ -2,6 +2,12 @@ import { CalendarDays, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../../components/ui/accordion'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -14,21 +20,24 @@ import {
 } from '../../components/ui/alert-dialog'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
-import { Card, CardContent } from '../../components/ui/card'
 import { CardVacio, ErrorCarga, FilasSkeleton } from '../../components/estados'
 import { useEliminarSesion, useSesiones } from '../../hooks/sesiones'
 import { usePaciente } from '../../hooks/pacientes'
 import { useAuth } from '../../hooks/useAuth'
 import { formatearFechaISO, nombreCompleto } from '../../lib/paciente'
-import { cn, formatError } from '../../lib/utils'
+import { formatError } from '../../lib/utils'
 import { LabelPacienteContexto } from '../../components/LabelPacienteContexto'
 import type { Sesion } from '../../types'
 
 /**
  * Lista de sesiones de un paciente en su propia página (/pacientes/:pacienteId/sesiones,
- * RI-6). Header con nombre del paciente, botón «Nueva sesión», cards con
- * fechaHora + disposicion + objetivos. Acciones Editar (link a /editar) y
- * Eliminar con confirmación (RI-8) — PUT/DELETE contra /sesiones/{id}.
+ * RI-6). Header con nombre del paciente, botón «Nueva sesión».
+ *
+ * Cada sesión se presenta como un Accordion (shadcn/ui):
+ * - Colapsado: fecha/hora + resumen corto de objetivos (line-clamp-1).
+ * - Expandido: disposición, objetivos completos, observaciones, estrategias y
+ *   próximos pasos, más las acciones Editar (link a /editar) y Eliminar con
+ *   confirmación (RI-8) — PUT/DELETE contra /sesiones/{id}.
  *
  * SOLO TERAPEUTA (las rutas de sesiones son inaccesibles para FAMILIAR).
  */
@@ -41,12 +50,7 @@ export function ListaSesiones() {
   const pacienteQuery = usePaciente(idValido ? id : undefined)
   const sesionesQuery = useSesiones(idValido ? id : undefined, esTerapeuta)
   const eliminar = useEliminarSesion()
-  // Por sesión: si el detalle está expandido (ver texto completo).
-  const [expandidas, setExpandidas] = useState<Record<string, boolean>>({})
   const [aEliminar, setAEliminar] = useState<Sesion | null>(null)
-
-  const toggleExpandida = (sesionId: string) =>
-    setExpandidas((prev) => ({ ...prev, [sesionId]: !prev[sesionId] }))
 
   const confirmarEliminar = async () => {
     if (!aEliminar || !idValido) return
@@ -116,102 +120,128 @@ export function ListaSesiones() {
       )}
 
       {sesionesQuery.isSuccess && sesionesQuery.data.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <Accordion
+          type="single"
+          collapsible
+          className="w-full overflow-hidden rounded-lg border bg-card shadow-sm"
+        >
           {sesionesQuery.data.map((sesion) => (
-            <Card key={sesion.id} className="shadow-sm">
-              <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-foreground">
+            <AccordionItem key={sesion.id} value={sesion.id}>
+              <AccordionTrigger className="gap-3 px-4 py-3 hover:bg-muted/50 hover:no-underline data-[state=open]:bg-muted/50">
+                <span className="flex min-w-0 flex-1 flex-col text-left">
+                  <span className="text-sm font-semibold text-foreground">
                     {formatearFechaISO(sesion.fechaHora)}
-                  </p>
+                  </span>
                   {sesion.objetivosTrabajados && (
-                    <p className="mt-0.5 text-sm text-muted-foreground">
+                    <span className="mt-0.5 line-clamp-1 break-words text-sm text-muted-foreground">
                       {sesion.objetivosTrabajados}
-                    </p>
+                    </span>
                   )}
-                  {(sesion.observaciones || sesion.estrategiasYProximosPasos) && (
-                    <div className="mt-1">
-                      <p
-                        className={cn(
-                          'text-xs text-muted-foreground',
-                          !expandidas[sesion.id] && 'line-clamp-2',
-                        )}
-                      >
-                        {[sesion.observaciones, sesion.estrategiasYProximosPasos]
-                          .filter(Boolean)
-                          .join(' · ')}
+                  {!sesion.objetivosTrabajados && (
+                    <span className="mt-0.5 text-sm text-muted-foreground">Sin objetivos registrados</span>
+                  )}
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 py-0">
+                <div className="flex flex-col gap-3 border-t pb-4 pt-4">
+                  {sesion.disposicion && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Disposición
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => toggleExpandida(sesion.id)}
-                        className="mt-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-                      >
-                        {expandidas[sesion.id] ? 'Ver menos' : 'Ver más'}
-                      </button>
+                      <Badge variant="secondary" className="mt-1">
+                        {sesion.disposicion}
+                      </Badge>
                     </div>
                   )}
-                </div>
-                {sesion.disposicion && (
-                  <Badge variant="secondary" className="shrink-0">
-                    {sesion.disposicion}
-                  </Badge>
-                )}
-                <div className="flex shrink-0 items-center gap-1">
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label={`Editar sesión del ${formatearFechaISO(sesion.fechaHora)}`}
-                  >
-                    <Link to={`/pacientes/${id}/sesiones/${sesion.id}/editar`}>
-                      <Pencil aria-hidden="true" />
-                    </Link>
-                  </Button>
-                  <AlertDialog
-                    open={aEliminar?.id === sesion.id}
-                    onOpenChange={(abierto) => {
-                      if (!abierto) setAEliminar(null)
-                    }}
-                  >
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Eliminar sesión del ${formatearFechaISO(sesion.fechaHora)}`}
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setAEliminar(sesion)}
-                      >
-                        <Trash2 aria-hidden="true" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar sesión?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Se eliminará la sesión del {formatearFechaISO(sesion.fechaHora)}. Esta
-                          acción no se puede deshacer.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel disabled={eliminar.isPending}>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          variant="destructive"
-                          disabled={eliminar.isPending}
-                          onClick={(event) => {
-                            event.preventDefault()
-                            void confirmarEliminar()
-                          }}
+
+                  {sesion.objetivosTrabajados && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Objetivos trabajados
+                      </p>
+                      <p className="mt-1 text-sm text-foreground">{sesion.objetivosTrabajados}</p>
+                    </div>
+                  )}
+
+                  {sesion.observaciones && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Observaciones
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">{sesion.observaciones}</p>
+                    </div>
+                  )}
+
+                  {sesion.estrategiasYProximosPasos && (
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Estrategias y próximos pasos
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {sesion.estrategiasYProximosPasos}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1 border-t pt-3">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <Link to={`/pacientes/${id}/sesiones/${sesion.id}/editar`}>
+                        <Pencil aria-hidden="true" />
+                        Editar
+                      </Link>
+                    </Button>
+                    <AlertDialog
+                      open={aEliminar?.id === sesion.id}
+                      onOpenChange={(abierto) => {
+                        if (!abierto) setAEliminar(null)
+                      }}
+                    >
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setAEliminar(sesion)}
                         >
-                          {eliminar.isPending ? 'Eliminando…' : 'Eliminar'}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          <Trash2 aria-hidden="true" />
+                          Eliminar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>¿Eliminar sesión?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Se eliminará la sesión del {formatearFechaISO(sesion.fechaHora)}. Esta
+                            acción no se puede deshacer.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={eliminar.isPending}>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            variant="destructive"
+                            disabled={eliminar.isPending}
+                            onClick={(event) => {
+                              event.preventDefault()
+                              void confirmarEliminar()
+                            }}
+                          >
+                            {eliminar.isPending ? 'Eliminando…' : 'Eliminar'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </AccordionContent>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       )}
     </div>
   )
