@@ -30,6 +30,14 @@ export const pictogramasKeys = {
 }
 
 /**
+ * Factory de query keys de la búsqueda en el catálogo ARASAAC (API pública,
+ * cliente sin cookie). El término llega ya debounced desde el componente.
+ */
+export const arasaacKeys = {
+  search: (termino: string) => ['arasaac', 'search', termino] as const,
+}
+
+/**
  * Factory de query keys del dominio pictogramas custom (D2).
  * Cada paciente tiene su propia rama de pictogramas custom.
  */
