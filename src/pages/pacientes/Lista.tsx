@@ -101,7 +101,8 @@ function CardPaciente({
     <Card className="shadow-sm transition-shadow hover:shadow-md">
       <CardContent className="flex items-center justify-between gap-3">
         <Link
-          to={`/pacientes/${paciente.id}`}
+          to={`/pacientes/${paciente.id}/cartillas`}
+          aria-label={`Ver cartillas de ${nombre}`}
           className="flex min-w-0 flex-1 items-center gap-3 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-600/10 text-sm font-semibold text-blue-700">

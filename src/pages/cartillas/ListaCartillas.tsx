@@ -24,11 +24,13 @@ import {
 import { Skeleton } from '../../components/ui/skeleton'
 import { useCartillas, useCrearCartilla, useEliminarCartilla } from '../../hooks/cartillas'
 import { useAuth } from '../../hooks/useAuth'
-import { formatearFechaISO } from '../../lib/paciente'
+import { usePaciente } from '../../hooks/pacientes'
+import { formatearFechaISO, nombreCompleto } from '../../lib/paciente'
 import { formatError } from '../../lib/utils'
 import type { Cartilla } from '../../types'
 import { DialogoNuevaCartilla } from './dialogos'
 import { toCartillaInput, type CartillaValues } from './schemas'
+import { LabelPacienteContexto } from '../../components/LabelPacienteContexto'
 
 /**
  * Lista de cartillas del paciente (/pacientes/:pacienteId/cartillas, T8).
@@ -144,6 +146,7 @@ export function ListaCartillas() {
   const idValido = id !== undefined && id.trim() !== ''
   const { usuario } = useAuth()
   const navigate = useNavigate()
+  const pacienteQuery = usePaciente(idValido ? id : undefined)
   const cartillasQuery = useCartillas(idValido ? id : undefined)
   const crear = useCrearCartilla()
   const eliminar = useEliminarCartilla()
@@ -175,9 +178,15 @@ export function ListaCartillas() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Cartillas</h2>
+          <p className="text-sm text-muted-foreground">
+            <LabelPacienteContexto
+              cargando={pacienteQuery.isPending}
+              nombre={pacienteQuery.data ? nombreCompleto(pacienteQuery.data) : undefined}
+            />
+          </p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight">Cartillas</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Cartillas de comunicación del paciente.
           </p>
@@ -187,7 +196,7 @@ export function ListaCartillas() {
             {usuario?.rol === 'FAMILIAR' ? (
               <Link to="/familiar">Volver a mi familia</Link>
             ) : (
-              <Link to={`/pacientes/${id}`}>Volver al paciente</Link>
+              <Link to="/pacientes">Volver a pacientes</Link>
             )}
           </Button>
           <Button
