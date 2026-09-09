@@ -52,6 +52,23 @@ export async function completarRegistro(data: GoogleCompletarRegistroRequest): P
   await api.post<void>('/auth/google/completar-registro', data)
 }
 
+/**
+ * POST /auth/olvide-password — dispara el email de recupero si el email está
+ * registrado. Responde SIEMPRE 200 (no revela si el email existe); el único
+ * error legítimo es el 429 de rate limit (3 intentos / 15 min).
+ */
+export async function olvidePassword(email: string): Promise<void> {
+  await api.post('/auth/olvide-password', { email })
+}
+
+/**
+ * POST /auth/restablecer-password — cambia el password con el token del email.
+ * 200 si el token es válido; 400 "El enlace no es válido o ha expirado" si no.
+ */
+export async function restablecerPassword(token: string, password: string): Promise<void> {
+  await api.post('/auth/restablecer-password', { token, password })
+}
+
 /** GET /api/usuarios/me — usuario de la sesión actual (401 ⇒ no hay sesión). */
 export async function getMe(): Promise<Usuario> {
   const { data } = await api.get<Usuario>('/api/usuarios/me')

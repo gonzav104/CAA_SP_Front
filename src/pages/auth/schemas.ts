@@ -16,11 +16,11 @@ export const PASSWORD_DIGIT = /\d/
 export const PASSWORD_SYMBOL = /[^A-Za-z0-9]/
 
 /** Patrón completo del password: min 8, mayúscula, minúscula, dígito y símbolo. */
-const PASSWORD_PATTERN = new RegExp(
+export const PASSWORD_PATTERN = new RegExp(
   `^(?=.*${PASSWORD_LOWER.source})(?=.*${PASSWORD_UPPER.source})(?=.*${PASSWORD_DIGIT.source})(?=.*${PASSWORD_SYMBOL.source}).{${PASSWORD_MIN_LENGTH},}$`,
 )
 
-const PASSWORD_MSG = `Mínimo ${PASSWORD_MIN_LENGTH} caracteres, con mayúscula, minúscula, número y símbolo`
+export const PASSWORD_MSG = `Mínimo ${PASSWORD_MIN_LENGTH} caracteres, con mayúscula, minúscula, número y símbolo`
 
 /**
  * Formulario de login: POST /auth/login.
@@ -33,6 +33,35 @@ export const loginSchema = z.object({
 })
 
 export type LoginValues = z.infer<typeof loginSchema>
+
+/**
+ * Formulario de olvide password: POST /auth/olvide-password.
+ * El backend responde SIEMPRE 200 para no revelar si el email existe — por eso
+ * el frontend muestra el mismo mensaje de éxito pase lo que pase.
+ */
+export const olvidePasswordSchema = z.object({
+  email: z.email('Ingresá un email válido'),
+})
+
+export type OlvidePasswordValues = z.infer<typeof olvidePasswordSchema>
+
+/**
+ * Formulario de restablecer password: POST /auth/restablecer-password.
+ * Reutiliza las MISMAS piezas del patrón de password del registro (la regla
+ * de fortaleza vive en un solo lugar: PASSWORD_PATTERN/PASSWORD_MSG).
+ */
+export const restablecerPasswordSchema = z
+  .object({
+    password: z.string().regex(PASSWORD_PATTERN, PASSWORD_MSG),
+    confirmarPassword: z.string(),
+  })
+  .refine((datos) => datos.password === datos.confirmarPassword, {
+    // zod v4: el mensaje personalizado de un check se pasa con `error` (no `message`).
+    error: 'Las contraseñas no coinciden',
+    path: ['confirmarPassword'],
+  })
+
+export type RestablecerPasswordValues = z.infer<typeof restablecerPasswordSchema>
 
 /**
  * Formulario de registro: POST /api/usuarios/registro.

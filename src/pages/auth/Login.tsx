@@ -132,6 +132,14 @@ export function Login() {
             </Field>
           )}
         />
+        <p className="text-center">
+          <Link
+            to="/olvide-password"
+            className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
         <Button
           type="submit"
           disabled={ocupado}

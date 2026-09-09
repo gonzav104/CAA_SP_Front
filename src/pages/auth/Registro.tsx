@@ -1,9 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { CircleCheck, CircleX, Loader2 } from 'lucide-react'
+import { CircleCheck, Loader2 } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { LoadingScreen } from '../../components/LoadingScreen'
+import { PasswordCheckItem, PasswordChecklist } from '../../components/PasswordChecklist'
 import { Button } from '../../components/ui/button'
 import { Field, FieldContent, FieldError, FieldLabel } from '../../components/ui/field'
 import { Input } from '../../components/ui/input'
@@ -20,11 +21,6 @@ import type { Rol } from '../../types'
 import { AuthLayout } from './AuthLayout'
 import {
   completarRegistroSchema,
-  PASSWORD_DIGIT,
-  PASSWORD_LOWER,
-  PASSWORD_MIN_LENGTH,
-  PASSWORD_SYMBOL,
-  PASSWORD_UPPER,
   registroSchema,
   toCompletarRegistroRequest,
   toRegistroRequest,
@@ -36,45 +32,6 @@ const OPCIONES_ROL: ReadonlyArray<{ valor: Rol; etiqueta: string }> = [
   { valor: 'FAMILIAR', etiqueta: 'Familiar' },
   { valor: 'TERAPEUTA', etiqueta: 'Terapeuta' },
 ]
-
-/**
- * Ítem del checklist de password: check verde si se cumple, x gris si no.
- * Feedback SOLO visual — la validación real la hace el schema Zod en el submit.
- */
-function PasswordCheckItem({ cumple, etiqueta }: { cumple: boolean; etiqueta: string }) {
-  return (
-    <li className="flex items-center gap-2 text-sm text-muted-foreground">
-      {cumple ? (
-        <CircleCheck className="size-4 shrink-0 text-green-600" aria-hidden="true" />
-      ) : (
-        <CircleX className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      )}
-      <span>{etiqueta}</span>
-    </li>
-  )
-}
-
-/**
- * Checklist en vivo del password: usa las MISMAS piezas del PASSWORD_PATTERN
- * de schemas.ts (PASSWORD_LOWER/UPPER/DIGIT/SYMBOL/MIN_LENGTH) — no inventa
- * reglas nuevas. Se actualiza mientras el usuario escribe (form.watch).
- */
-function PasswordChecklist({ password }: { password: string }) {
-  const checks: ReadonlyArray<{ cumple: boolean; etiqueta: string }> = [
-    { cumple: password.length >= PASSWORD_MIN_LENGTH, etiqueta: `Al menos ${PASSWORD_MIN_LENGTH} caracteres` },
-    { cumple: PASSWORD_UPPER.test(password), etiqueta: 'Una mayúscula' },
-    { cumple: PASSWORD_LOWER.test(password), etiqueta: 'Una minúscula' },
-    { cumple: PASSWORD_DIGIT.test(password), etiqueta: 'Un número' },
-    { cumple: PASSWORD_SYMBOL.test(password), etiqueta: 'Un símbolo' },
-  ]
-  return (
-    <ul className="flex flex-col gap-1.5">
-      {checks.map((check) => (
-        <PasswordCheckItem key={check.etiqueta} cumple={check.cumple} etiqueta={check.etiqueta} />
-      ))}
-    </ul>
-  )
-}
 
 /** Aviso sobrio para el flujo de completar registro de Google. */
 function NoticeGoogle() {

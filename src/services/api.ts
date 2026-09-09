@@ -30,6 +30,8 @@ const PUBLIC_ENDPOINTS = [
   '/auth/logout',
   '/auth/google',
   '/auth/google/completar-registro',
+  '/auth/olvide-password',
+  '/auth/restablecer-password',
   '/api/usuarios/registro',
   '/api/usuarios/me',
 ]
@@ -58,7 +60,10 @@ api.interceptors.response.use(
     const url = error.config?.url ?? ''
     const isPublic = PUBLIC_ENDPOINTS.some((endpoint) => url.includes(endpoint))
     const onPublicPage =
-      window.location.pathname === '/login' || window.location.pathname === '/registro'
+      window.location.pathname === '/login' ||
+      window.location.pathname === '/registro' ||
+      window.location.pathname === '/olvide-password' ||
+      window.location.pathname === '/restablecer-password'
 
     if (status === 401 && !isPublic && !onPublicPage) {
       window.location.assign('/login')

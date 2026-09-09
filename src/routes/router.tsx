@@ -18,6 +18,12 @@ import { useAuth } from '../hooks/useAuth'
  */
 const Login = lazy(() => import('../pages/auth/Login').then((m) => ({ default: m.Login })))
 const Registro = lazy(() => import('../pages/auth/Registro').then((m) => ({ default: m.Registro })))
+const OlvidePassword = lazy(() =>
+  import('../pages/auth/OlvidePassword').then((m) => ({ default: m.OlvidePassword })),
+)
+const RestablecerPassword = lazy(() =>
+  import('../pages/auth/RestablecerPassword').then((m) => ({ default: m.RestablecerPassword })),
+)
 const CartillaView = lazy(() =>
   import('../pages/cartillas/CartillaView').then((m) => ({ default: m.CartillaView })),
 )
@@ -47,9 +53,6 @@ const ListaPacientes = lazy(() =>
 )
 const NuevoPaciente = lazy(() =>
   import('../pages/pacientes/NuevoPaciente').then((m) => ({ default: m.NuevoPaciente })),
-)
-const PacienteDetalle = lazy(() =>
-  import('../pages/pacientes/PacienteDetalle').then((m) => ({ default: m.PacienteDetalle })),
 )
 const PictogramasCustom = lazy(() =>
   import('../pages/pacientes/PictogramasCustom').then((m) => ({ default: m.PictogramasCustom })),
@@ -91,6 +94,8 @@ export const router = createBrowserRouter([
     children: [
       { path: '/login', element: <Login /> },
       { path: '/registro', element: <Registro /> },
+      { path: '/olvide-password', element: <OlvidePassword /> },
+      { path: '/restablecer-password', element: <RestablecerPassword /> },
       {
         element: <ProtectedRoute />,
         children: [
@@ -146,7 +151,13 @@ export const router = createBrowserRouter([
                 element: <PictogramasCustom />,
               },
               { path: 'pacientes/:pacienteId/editar', element: <RequiereTerapeuta><EditarPaciente /></RequiereTerapeuta> },
-              { path: 'pacientes/:pacienteId', element: <PacienteDetalle /> },
+              {
+                // El detalle intermedio se obvió: la URL raíz de un paciente
+                // redirige directo a sus cartillas, el destino al que llevaba
+                // el click desde la lista de pacientes.
+                path: 'pacientes/:pacienteId',
+                element: <Navigate to="cartillas" replace />,
+              },
               { path: 'familiar', element: <FamiliarDashboard /> },
             ],
           },
