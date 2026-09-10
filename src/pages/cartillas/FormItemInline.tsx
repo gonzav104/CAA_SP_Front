@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ImagePlus, Loader2 } from 'lucide-react'
+import { ImagePlus, Loader2, X } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { ThumbPictograma } from '../../components/ThumbPictograma'
@@ -8,7 +8,6 @@ import { Field, FieldError, FieldLabel } from '../../components/ui/field'
 import { Input } from '../../components/ui/input'
 import { useActualizarItem, useCrearItem, usePictogramasGlobales } from '../../hooks/cartillas'
 import { usePictogramasCustom } from '../../hooks/pictogramas-custom'
-import { imagenUrlDeItem } from '../../lib/cartilla'
 import type { ItemDetalle } from '../../types'
 import {
   itemSchema,
@@ -26,8 +25,10 @@ import {
  * AGENTS.md: form multi-campo va en el editor, no en Dialog; el ÚNICO Dialog
  * acá es la selección de pictograma, que es un solo campo).
  *
- * - textoHablado + botón «Seleccionar pictograma» → abre SeleccionPictograma
- *   (tabs Globales/ARASAAC/Custom con materialización interna).
+ * - textoHablado + campo pictograma clickeable (todo el campo es el trigger)
+ *   → abre SeleccionPictograma (tabs ARASAAC/Globales/Custom, confirm-first:
+ *   el picker aplica al Confirmar y puede materializar ARASAAC).
+ * - X hermano absoluto quita el pictograma (limpiarPictograma).
  * - Submit con toItemInput: preserva RI-18 (selector dual mutuamente excluyente
  *   validado por itemSchema en schemas.ts, intacto).
  * - Cada submit = mutateAsync → los hooks invalidan `cartillaKeys.detail` UNA
@@ -69,8 +70,9 @@ export function FormItemInline({
   const recursoCustomId = useWatch({ control: form.control, name: 'recursoCustomId' })
   const formError = form.formState.errors.recursoGlobalId?.message
 
-  // Pictograma a mostrar junto al input: busca en las listas (global/custom);
-  // al editar, cae al pictograma resuelto del detalle (item.pictograma).
+  // Pictograma a mostrar junto al input: el ESTADO DEL FORM es la única fuente
+  // de verdad (tras limpiar con la X no debe reaparecer la imagen vieja del
+  // item); `toItemValues(item)` ya seedea los ids al editar.
   const pictogramaMostrado = ((): { imagenUrl?: string; etiqueta?: string } => {
     if (recursoGlobalId) {
       const global = pictogramasQuery.data?.find((p) => p.id === recursoGlobalId)
@@ -80,9 +82,6 @@ export function FormItemInline({
       const custom = pictogramasCustomQuery.data?.find((p) => p.id === recursoCustomId)
       if (custom) return { imagenUrl: custom.imagenUrl, etiqueta: custom.etiqueta }
     }
-    if (item) {
-      return { imagenUrl: imagenUrlDeItem(item), etiqueta: item.pictograma.etiqueta }
-    }
     return {}
   })()
 
@@ -90,6 +89,15 @@ export function FormItemInline({
   const aplicarSeleccion = ({ globalId, customId }: PictogramaElegido) => {
     form.setValue('recursoGlobalId', globalId, { shouldValidate: true })
     form.setValue('recursoCustomId', customId, { shouldValidate: true })
+  }
+
+  /** El X de quitar solo aparece si hay un pictograma elegido (si no, placeholder). */
+  const tienePictograma = Boolean(recursoGlobalId || recursoCustomId)
+
+  /** Quita el pictograma del form (el item se guarda sin pictograma, ver itemSchema). */
+  const limpiarPictograma = () => {
+    form.setValue('recursoGlobalId', undefined, { shouldValidate: true })
+    form.setValue('recursoCustomId', undefined, { shouldValidate: true })
   }
 
   const guardar = async (values: ItemValues) => {
@@ -138,33 +146,53 @@ export function FormItemInline({
 
       <Field>
         <FieldLabel>Pictograma</FieldLabel>
-        <div className="flex items-center gap-3 rounded-lg border border-border px-3 py-2">
-          <ThumbPictograma
-            src={pictogramaMostrado.imagenUrl}
-            alt={pictogramaMostrado.etiqueta ?? 'Sin pictograma'}
-            className="size-10 shrink-0"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">
-              {pictogramaMostrado.etiqueta ?? 'Sin pictograma seleccionado'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {recursoGlobalId
-                ? 'Pictograma global'
-                : recursoCustomId
-                  ? 'Pictograma del paciente'
-                  : 'Opcional: podés guardar el item sin pictograma'}
-            </p>
-          </div>
+        <div className="relative">
           <Button
             type="button"
             variant="outline"
-            size="dense"
+            className="h-auto w-full justify-start gap-3 px-3 py-2 text-left"
             onClick={() => setSelectorAbierto(true)}
           >
-            <ImagePlus aria-hidden="true" />
-            Seleccionar pictograma
+            <ThumbPictograma
+              src={pictogramaMostrado.imagenUrl}
+              alt={pictogramaMostrado.etiqueta ?? 'Sin pictograma'}
+              className="size-10 shrink-0"
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-medium">
+                {pictogramaMostrado.etiqueta ?? 'Sin pictograma seleccionado'}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {recursoGlobalId
+                  ? 'Pictograma global'
+                  : recursoCustomId
+                    ? 'Pictograma del paciente'
+                    : 'Opcional: podés guardar el item sin pictograma'}
+              </span>
+            </span>
+            {tienePictograma ? (
+              // Espaciador del mismo ancho que el X (size-9): el texto trunca
+              // antes de pasar por debajo del botón de quitar.
+              <span aria-hidden="true" className="size-9 shrink-0" />
+            ) : (
+              <ImagePlus aria-hidden="true" />
+            )}
           </Button>
+          {tienePictograma && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Quitar pictograma"
+              className="absolute right-2 top-1/2 -translate-y-1/2"
+              onClick={(event) => {
+                event.stopPropagation()
+                limpiarPictograma()
+              }}
+            >
+              <X aria-hidden="true" />
+            </Button>
+          )}
         </div>
         {formError && (
           <div role="alert" className="text-sm font-normal text-destructive">
@@ -188,14 +216,14 @@ export function FormItemInline({
       </div>
 
       {/* Montaje condicional: el selector arranca con estado limpio en cada apertura
-          (tab Globales, término de búsqueda vacío) sin reset por efecto. */}
+          (tab ARASAAC, término de búsqueda vacío) sin reset por efecto. */}
       {selectorAbierto && (
         <SeleccionPictograma
           abierto
           onAbiertoChange={setSelectorAbierto}
           pacienteId={pacienteId}
           valor={{ recursoGlobalId, recursoCustomId }}
-          onSeleccionar={aplicarSeleccion}
+          onConfirmar={aplicarSeleccion}
         />
       )}
     </form>
