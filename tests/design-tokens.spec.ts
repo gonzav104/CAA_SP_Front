@@ -1,6 +1,8 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, request as playwrightRequest, type Page } from '@playwright/test'
 
 const BASE = 'http://localhost:5173'
+const API_BASE = 'http://localhost:8080'
+const TERAPEUTA_STORAGE_STATE = 'tests/.auth/shell-navegacion.json'
 
 /**
  * Valor de `--primary` que esta unidad adopta: el mismo azul que hoy solo
@@ -108,5 +110,73 @@ test.describe('Design tokens — zero-delta en consumidores existentes de bg-sid
     await page.goto(`${BASE}/familiar`)
     const cta = page.getByRole('link', { name: /Ver cartillas/ }).first()
     await expect(cta).toHaveCSS('background-color', PRIMARY_LIGHT)
+  })
+})
+
+/**
+ * PictogramaTile (variante "preview") — regresión de identidad de clase tras
+ * el refactor de design-foundation PR2 (ver sdd/design-foundation/design,
+ * Focus Point 2: "class strings copiadas byte-for-byte"). El root del tile
+ * es un <div> estático (sin `cn`/twMerge de un `Button`), así que este valor
+ * SÍ puede compararse contra el string literal documentado en el diseño —a
+ * diferencia del tile de uso (ver tests/modo-uso.spec.ts), que compone
+ * `Button` y necesita el valor capturado en vivo.
+ */
+const CLASE_TILE_PREVIEW =
+  'flex h-full w-full flex-col items-center gap-2 rounded-lg border border-border px-3 py-3 text-center'
+
+test.describe('PictogramaTile — identidad de clase en CartillaView (preview, TERAPEUTA con datos reales)', () => {
+  test.use({ storageState: TERAPEUTA_STORAGE_STATE })
+
+  let pacienteId: string
+  let cartillaId: string
+
+  test.beforeAll(async () => {
+    const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
+
+    const pacientesResp = await api.get(`${API_BASE}/api/pacientes`)
+    const pacientes = (await pacientesResp.json()) as Array<{ id: string }>
+    pacienteId = pacientes[0].id
+
+    const cartillaResp = await api.post(`${API_BASE}/api/pacientes/${pacienteId}/cartillas`, {
+      data: { nombre: `[E2E CartillaView] ${Date.now()}` },
+    })
+    const cartilla = (await cartillaResp.json()) as { id: string }
+    cartillaId = cartilla.id
+
+    const categoriaResp = await api.post(
+      `${API_BASE}/api/pacientes/${pacienteId}/cartillas/${cartillaId}/categorias`,
+      { data: { nombre: 'Comidas', colorHex: '#4287f5', orden: 0 } },
+    )
+    const categoria = (await categoriaResp.json()) as { id: string }
+
+    const pictogramasResp = await api.get(`${API_BASE}/api/pictogramas-globales`)
+    const pictogramas = (await pictogramasResp.json()) as Array<{ id: string }>
+
+    await api.post(
+      `${API_BASE}/api/pacientes/${pacienteId}/cartillas/${cartillaId}/categorias/${categoria.id}/items`,
+      { data: { textoHablado: 'Agua', ordenVisual: 0, recursoGlobalId: pictogramas[0].id } },
+    )
+
+    await api.dispose()
+  })
+
+  test.afterAll(async () => {
+    if (!pacienteId || !cartillaId) return
+    const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
+    await api.delete(`${API_BASE}/api/pacientes/${pacienteId}/cartillas/${cartillaId}`)
+    await api.dispose()
+  })
+
+  test('el tile de preview conserva exactamente la clase de chrome documentada en el diseño', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}`)
+
+    // El tile de preview es un <div> sin rol de botón (no interactivo, ver
+    // design "preview es estático: no focosable, sin tab stop") — se
+    // escopea al <li> del grid para llegar a su único hijo.
+    const tile = page.locator('li').filter({ hasText: 'Agua' }).locator('> div').first()
+    await expect(tile).toHaveAttribute('class', CLASE_TILE_PREVIEW)
   })
 })
