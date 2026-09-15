@@ -19,6 +19,8 @@ export default defineConfig({
         '**/pictogramas-guard.spec.ts',
         '**/pictogramas-guard.setup.ts',
         '**/dashboard-pacientes.spec.ts',
+        '**/design-tokens.spec.ts',
+        '**/modo-uso.spec.ts',
       ],
     },
     {
@@ -64,6 +66,31 @@ export default defineConfig({
         storageState: 'tests/.auth/pictogramas-guard-familiar.json',
       },
       dependencies: ['setup-pictogramas-guard', 'setup'],
+    },
+    {
+      name: 'design-tokens',
+      testMatch: '**/design-tokens.spec.ts',
+      use: {
+        browserName: 'chromium',
+        // Default FAMILIAR: el describe TERAPEUTA reutiliza
+        // shell-navegacion.json vía test.use(), mismo patrón que
+        // dashboard-pacientes.spec.ts.
+        storageState: 'tests/.auth/pictogramas-guard-familiar.json',
+      },
+      dependencies: ['setup-pictogramas-guard', 'setup'],
+    },
+    {
+      name: 'modo-uso',
+      testMatch: '**/modo-uso.spec.ts',
+      use: {
+        browserName: 'chromium',
+        // El describe único de este archivo usa test.use() para pisar el
+        // storageState por TERAPEUTA (shell-navegacion.json): necesita crear
+        // datos reales (cartilla/categoría/items) vía API antes de navegar a
+        // /uso/..., y esa cuenta es la dueña del paciente de fixtures.
+        storageState: 'tests/.auth/shell-navegacion.json',
+      },
+      dependencies: ['setup'],
     },
   ],
 })

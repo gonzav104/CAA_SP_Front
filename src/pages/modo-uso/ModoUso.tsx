@@ -2,7 +2,7 @@ import { Check, Frown, LayoutGrid, Loader2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { BarraFrase } from '../../components/BarraFrase'
-import { ThumbPictograma } from '../../components/ThumbPictograma'
+import { PictogramaTile } from '../../components/pictogramas/PictogramaTile'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -240,23 +240,14 @@ export function ModoUso() {
               <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
                 <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
                   {items.map((item) => (
-                    <Button
+                    <PictogramaTile
                       key={item.id}
-                      type="button"
-                      variant="default"
-                      onClick={() => agregarPalabra(item.textoHablado)}
-                      aria-label={`Agregar ${item.textoHablado} a la frase`}
-                      className="flex min-h-[120px] min-w-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-white/70 bg-white p-2 text-slate-800 shadow-sm transition-transform hover:bg-white hover:shadow-md active:scale-95"
-                    >
-                      <ThumbPictograma
-                        src={imagenUrlDeItem(item)}
-                        alt={item.textoHablado}
-                        className="h-14 w-14 shrink-0 sm:h-16 sm:w-16"
-                      />
-                      <span className="line-clamp-3 min-w-0 break-words text-center text-lg font-bold leading-tight sm:text-xl">
-                        {item.textoHablado}
-                      </span>
-                    </Button>
+                      variante="uso"
+                      src={imagenUrlDeItem(item)}
+                      etiqueta={item.textoHablado}
+                      onSeleccionar={() => agregarPalabra(item.textoHablado)}
+                      ariaLabel={`Agregar ${item.textoHablado} a la frase`}
+                    />
                   ))}
                 </div>
               </div>
