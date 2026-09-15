@@ -148,7 +148,11 @@ export const router = createBrowserRouter([
               },
               {
                 path: 'pacientes/:pacienteId/pictogramas',
-                element: <PictogramasCustom />,
+                element: (
+                  <RequiereTerapeuta>
+                    <PictogramasCustom />
+                  </RequiereTerapeuta>
+                ),
               },
               { path: 'pacientes/:pacienteId/editar', element: <RequiereTerapeuta><EditarPaciente /></RequiereTerapeuta> },
               {

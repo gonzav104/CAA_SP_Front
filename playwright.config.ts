@@ -13,7 +13,12 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { browserName: 'chromium' },
-      testIgnore: ['**/shell-navegacion.spec.ts', '**/shell-navegacion.setup.ts'],
+      testIgnore: [
+        '**/shell-navegacion.spec.ts',
+        '**/shell-navegacion.setup.ts',
+        '**/pictogramas-guard.spec.ts',
+        '**/pictogramas-guard.setup.ts',
+      ],
     },
     {
       name: 'setup',
@@ -29,6 +34,23 @@ export default defineConfig({
         viewport: { width: 390, height: 844 },
       },
       dependencies: ['setup'],
+    },
+    {
+      name: 'setup-pictogramas-guard',
+      testMatch: '**/pictogramas-guard.setup.ts',
+      use: { browserName: 'chromium' },
+    },
+    {
+      name: 'pictogramas-guard',
+      testMatch: '**/pictogramas-guard.spec.ts',
+      use: {
+        browserName: 'chromium',
+        storageState: 'tests/.auth/pictogramas-guard-familiar.json',
+      },
+      // Depende de ambos setups: el propio (FAMILIAR) y el de
+      // shell-navegacion (TERAPEUTA), cuyo storageState reutiliza el
+      // describe TERAPEUTA de pictogramas-guard.spec.ts vía test.use().
+      dependencies: ['setup-pictogramas-guard', 'setup'],
     },
   ],
 })
