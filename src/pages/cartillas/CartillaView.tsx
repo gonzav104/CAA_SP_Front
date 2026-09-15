@@ -1,6 +1,6 @@
 import { LayoutGrid, Pencil, Play, Star } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
-import { ThumbPictograma } from '../../components/ThumbPictograma'
+import { PictogramaTile } from '../../components/pictogramas/PictogramaTile'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { DetalleSkeleton, ErrorCarga, CardVacio } from '../../components/estados'
@@ -122,18 +122,12 @@ export function CartillaView() {
                   ) : (
                     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                       {items.map((item) => (
-                        <li
-                          key={item.id}
-                          className="flex flex-col items-center gap-2 rounded-lg border border-border px-3 py-3 text-center"
-                        >
-                          <ThumbPictograma
+                        <li key={item.id}>
+                          <PictogramaTile
                             src={imagenUrlDeItem(item)}
-                            alt={item.textoHablado}
-                            className="h-20 w-20"
+                            etiqueta={item.textoHablado}
+                            variante="preview"
                           />
-                          <span className="text-xs font-medium text-foreground">
-                            {item.textoHablado}
-                          </span>
                         </li>
                       ))}
                     </ul>
