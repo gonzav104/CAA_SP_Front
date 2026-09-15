@@ -10,6 +10,25 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'chromium', use: { browserName: 'chromium' } },
+    {
+      name: 'chromium',
+      use: { browserName: 'chromium' },
+      testIgnore: ['**/shell-navegacion.spec.ts', '**/shell-navegacion.setup.ts'],
+    },
+    {
+      name: 'setup',
+      testMatch: '**/shell-navegacion.setup.ts',
+      use: { browserName: 'chromium' },
+    },
+    {
+      name: 'shell-navegacion',
+      testMatch: '**/shell-navegacion.spec.ts',
+      use: {
+        browserName: 'chromium',
+        storageState: 'tests/.auth/shell-navegacion.json',
+        viewport: { width: 390, height: 844 },
+      },
+      dependencies: ['setup'],
+    },
   ],
 })

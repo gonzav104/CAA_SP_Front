@@ -39,3 +39,4 @@ AGENTS.md
 playwright-report/
 test-results/
 screenshots/
+tests/.auth/

@@ -1,4 +1,5 @@
 import { LogOut, Menu } from 'lucide-react'
+import type { RefObject } from 'react'
 import { Avatar, AvatarFallback } from '../../components/ui/avatar'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -18,6 +19,8 @@ interface AppHeaderProps {
   drawerAbierto: boolean
   onAbrirDrawer: () => void
   onLogout: () => void
+  /** Botón trigger del drawer: `MobileNavDrawer` le devuelve el foco al cerrar. */
+  disparadorRef: RefObject<HTMLButtonElement | null>
 }
 
 /** Iniciales para el fallback del avatar (p.ej. «Ana María» → «AM»). */
@@ -38,6 +41,7 @@ export function AppHeader({
   drawerAbierto,
   onAbrirDrawer,
   onLogout,
+  disparadorRef,
 }: AppHeaderProps) {
   const rolLabel = usuario.rol === 'TERAPEUTA' ? 'Terapeuta' : 'Familiar'
 
@@ -45,6 +49,7 @@ export function AppHeader({
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur md:px-6">
       <div className="flex min-w-0 items-center gap-2">
         <Button
+          ref={disparadorRef}
           type="button"
           variant="ghost"
           size="icon-sm"
