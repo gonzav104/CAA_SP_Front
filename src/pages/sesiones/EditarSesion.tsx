@@ -8,10 +8,8 @@ import { Field, FieldError, FieldLabel } from '../../components/ui/field'
 import { Input } from '../../components/ui/input'
 import { Textarea } from '../../components/ui/textarea'
 import { DetalleSkeleton, ErrorCarga } from '../../components/estados'
-import { LabelPacienteContexto } from '../../components/LabelPacienteContexto'
 import { usePaciente } from '../../hooks/pacientes'
 import { useActualizarSesion, useSesion } from '../../hooks/sesiones'
-import { nombreCompleto } from '../../lib/paciente'
 import { formatError } from '../../lib/utils'
 import { sesionSchema, toSesionInput, toSesionValues, type SesionValues } from './schemas'
 
@@ -84,13 +82,7 @@ export function EditarSesion() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
-        <p className="text-sm text-muted-foreground">
-          <LabelPacienteContexto
-            cargando={pacienteQuery.isPending}
-            nombre={pacienteQuery.data ? nombreCompleto(pacienteQuery.data) : undefined}
-          />
-        </p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-tight">Editar sesión</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Editar sesión</h2>
         <p className="mt-1 text-sm text-muted-foreground">Actualizá los datos de la sesión.</p>
       </div>
 

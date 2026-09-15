@@ -1,12 +1,12 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { cn } from '../../lib/utils'
-import type { NavItemDef } from './navItems'
+import type { NavGroup } from './navItems'
 import { SidebarNav } from './SidebarNav'
 
 interface MobileNavDrawerProps {
   abierto: boolean
   onCerrar: () => void
-  items: NavItemDef[]
+  groups: NavGroup[]
   /** Botón trigger (hamburguesa): recibe el foco de vuelta al cerrar el drawer. */
   disparadorRef: RefObject<HTMLButtonElement | null>
 }
@@ -30,7 +30,7 @@ const SELECTOR_FOCOSABLES = 'a[href], button:not([disabled]), [tabindex]:not([ta
  * - El drawer cerrado queda `inert` (no es alcanzable con Tab aunque siga
  *   montado); mientras está abierto, deja de estarlo.
  */
-export function MobileNavDrawer({ abierto, onCerrar, items, disparadorRef }: MobileNavDrawerProps) {
+export function MobileNavDrawer({ abierto, onCerrar, groups, disparadorRef }: MobileNavDrawerProps) {
   const drawerRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export function MobileNavDrawer({ abierto, onCerrar, items, disparadorRef }: Mob
           abierto ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <SidebarNav items={items} />
+        <SidebarNav groups={groups} />
       </aside>
 
       {abierto && (

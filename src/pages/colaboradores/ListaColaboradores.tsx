@@ -16,11 +16,9 @@ import {
   AlertDialogTrigger,
 } from '../../components/ui/alert-dialog'
 import { CardVacio, ErrorCarga, FilasSkeleton } from '../../components/estados'
-import { LabelPacienteContexto } from '../../components/LabelPacienteContexto'
 import { useColaboradores, useEliminarColaborador } from '../../hooks/colaboradores'
-import { usePaciente } from '../../hooks/pacientes'
 import { useAuth } from '../../hooks/useAuth'
-import { iniciales, nombreCompleto } from '../../lib/paciente'
+import { iniciales } from '../../lib/paciente'
 import { formatError } from '../../lib/utils'
 import type { Colaborador } from '../../types'
 
@@ -36,7 +34,6 @@ export function ListaColaboradores() {
   const idValido = id !== undefined && id.trim() !== ''
   const { usuario } = useAuth()
   const esTerapeuta = usuario?.rol === 'TERAPEUTA'
-  const pacienteQuery = usePaciente(idValido ? id : undefined)
   const colaboradoresQuery = useColaboradores(idValido ? id : undefined, esTerapeuta)
   const eliminar = useEliminarColaborador()
   const [aEliminar, setAEliminar] = useState<Colaborador | null>(null)
@@ -61,13 +58,7 @@ export function ListaColaboradores() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">
-            <LabelPacienteContexto
-              cargando={pacienteQuery.isPending}
-              nombre={pacienteQuery.data ? nombreCompleto(pacienteQuery.data) : undefined}
-            />
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">Colaboradores</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Colaboradores</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Personas que colaboran en el cuidado y la comunicación de este paciente.
           </p>
