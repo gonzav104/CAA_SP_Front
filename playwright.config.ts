@@ -18,6 +18,7 @@ export default defineConfig({
         '**/shell-navegacion.setup.ts',
         '**/pictogramas-guard.spec.ts',
         '**/pictogramas-guard.setup.ts',
+        '**/dashboard-pacientes.spec.ts',
       ],
     },
     {
@@ -50,6 +51,18 @@ export default defineConfig({
       // Depende de ambos setups: el propio (FAMILIAR) y el de
       // shell-navegacion (TERAPEUTA), cuyo storageState reutiliza el
       // describe TERAPEUTA de pictogramas-guard.spec.ts vía test.use().
+      dependencies: ['setup-pictogramas-guard', 'setup'],
+    },
+    {
+      name: 'dashboard-pacientes',
+      testMatch: '**/dashboard-pacientes.spec.ts',
+      use: {
+        browserName: 'chromium',
+        // Default FAMILIAR: el describe TERAPEUTA reutiliza
+        // shell-navegacion.json vía test.use(), mismo patrón que
+        // pictogramas-guard.spec.ts.
+        storageState: 'tests/.auth/pictogramas-guard-familiar.json',
+      },
       dependencies: ['setup-pictogramas-guard', 'setup'],
     },
   ],
