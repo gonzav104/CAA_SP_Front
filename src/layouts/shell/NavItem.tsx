@@ -7,6 +7,12 @@ interface NavItemProps {
   icon: LucideIcon
   /** Marca el item activo solo cuando la ruta coincide exacta (p.ej. base /pacientes). */
   end?: boolean
+  /**
+   * Da mayor peso visual al item (rango "principal" del sidebar rankeado,
+   * design `sdd/paciente-overview` obs #65): `font-semibold py-2.5` en vez
+   * de `font-medium py-2`. Sobrevive a `grayscale` porque no depende de color.
+   */
+  enfasis?: boolean
   children: string
 }
 
@@ -20,14 +26,15 @@ interface NavItemProps {
  * `aria-current="page"` automáticamente cuando está activo — no hace falta
  * calcularlo a mano.
  */
-export function NavItem({ to, icon: Icon, end, children }: NavItemProps) {
+export function NavItem({ to, icon: Icon, end, enfasis, children }: NavItemProps) {
   return (
     <NavLink
       to={to}
       end={end}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-sidebar-ring/50',
+          'flex items-center gap-3 rounded-md px-3 text-sm transition-colors outline-none focus-visible:ring-[3px] focus-visible:ring-sidebar-ring/50',
+          enfasis ? 'py-2.5 font-semibold' : 'py-2 font-medium',
           isActive
             ? 'bg-sidebar-primary text-sidebar-primary-foreground'
             : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',

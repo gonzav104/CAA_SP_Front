@@ -36,7 +36,11 @@ export function DashboardLayout() {
     return null
   }
 
-  const items = construirNavItems({ rol: usuario.rol, pacienteId })
+  // TODO(paciente-overview PR2): `AppSidebar`/`MobileNavDrawer` todavía esperan
+  // `NavItemDef[]` (render plano); acá se aplana `NavGroup[]` como shim de
+  // compatibilidad hasta que PR2 los actualice para renderizar grupos
+  // (encabezados, dividers, `enfasis`). El orden y el contenido no cambian.
+  const items = construirNavItems({ rol: usuario.rol, pacienteId }).flatMap((grupo) => grupo.items)
   const titulo = tituloDeSeccion(location.pathname)
 
   const manejarLogout = async () => {
