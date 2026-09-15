@@ -50,9 +50,13 @@ function CardPaciente({
   const esTerapeuta = usuario?.rol === 'TERAPEUTA'
   const nombre = nombreCompleto(paciente)
   const edad = calcularEdad(paciente.fechaNacimiento)
-  // Gestión de pacientes: SOLO terapeutas (un FAMILIAR jamás edita/elimina,
-  // aunque tenga miPermiso de edición — RI-2).
-  const puedeEditar = esTerapeuta && paciente.miPermiso === 'EDICION_LIMITADA'
+  // Gestión de pacientes (editar datos, eliminar): SOLO terapeutas, sin mirar
+  // miPermiso — un FAMILIAR jamás edita/elimina, aunque tenga miPermiso de
+  // edición de contenido (RI-2). No usar puedeEditarPaciente() acá: ese
+  // helper es para editar CONTENIDO del paciente (cartillas/pictogramas),
+  // no para gestión del paciente en sí — su propio comentario aclara que
+  // eliminar recursos es más restrictivo y depende de esTerapeuta directo.
+  const puedeEditar = esTerapeuta
 
   return (
     <Card className="shadow-sm transition-shadow hover:shadow-md">

@@ -32,30 +32,15 @@ test.describe('Dashboard de pacientes — TERAPEUTA (/pacientes)', () => {
       .waitFor({ state: 'visible', timeout: 5_000 })
       .then(() => true)
       .catch(() => false)
-    // El menú de acciones (y por lo tanto Eliminar) solo se renderiza cuando
-    // `esTerapeuta && paciente.miPermiso === 'EDICION_LIMITADA'` (gate
-    // pre-existente en Lista.tsx, no tocado por esta unidad — R6).
-    // Evidencia (investigada en esta unidad, no solo asumida): un TERAPEUTA
-    // NUNCA puede llegar a esa condición con datos reales, no solo con este
-    // fixture puntual: 1) el backend devuelve `miPermiso: null` para
-    // pacientes propios (confirmado: GET /api/pacientes con la cuenta dueña
-    // devuelve `miPermiso: null`, nunca 'EDICION_LIMITADA'); 2)
-    // POST /api/pacientes/{id}/colaboradores solo acepta emails de cuentas
-    // rol FAMILIAR como colaborador — probado con una segunda cuenta
-    // TERAPEUTA (playwright.test2@correo.com) sobre un paciente de su
-    // propiedad: intentar agregar a playwright.test@correo.com (TERAPEUTA)
-    // como colaborador devuelve 404 "Usuario no encontrado", mientras que
-    // agregar a playwright.familiar@correo.com (FAMILIAR) con el mismo
-    // payload devuelve 201. Por lo tanto ningún paciente visible para una
-    // cuenta TERAPEUTA puede tener `miPermiso === 'EDICION_LIMITADA'` bajo
-    // las reglas de negocio actuales del backend — el dropdown de acciones
-    // es estructuralmente inalcanzable para TERAPEUTA con este gate, no un
-    // problema de fixture. Fuera de alcance de esta unidad corregir el gate
-    // (R6 exige conservarlo byte-a-byte).
-    test.skip(
-      !disponible,
-      'Gate esTerapeuta && miPermiso===EDICION_LIMITADA es inalcanzable para TERAPEUTA: el backend nunca asigna EDICION_LIMITADA al dueño (siempre null) y el endpoint de colaboradores rechaza emails TERAPEUTA (404 "Usuario no encontrado", verificado vía API). Pre-existente, fuera de alcance (R6).',
-    )
+    // El menú de acciones se renderiza según `puedeEditar` en `Lista.tsx`.
+    // Bug preexistente detectado y corregido en esta misma unidad: la
+    // condición original (`esTerapeuta && paciente.miPermiso ===
+    // 'EDICION_LIMITADA'`) era inalcanzable para cualquier TERAPEUTA, porque
+    // el backend nunca asigna `EDICION_LIMITADA` al dueño (siempre `null`).
+    // Corregida a `esTerapeuta` a secas (gestión de pacientes es SOLO para
+    // terapeutas, sin mirar `miPermiso` — RI-2). El `test.skip` dinámico
+    // queda como red de seguridad, no debería dispararse.
+    test.skip(!disponible, 'Menú de acciones no visible para la cuenta TERAPEUTA de prueba.')
 
     let deleteEnviado = false
     await page.route('**/api/pacientes/*', async (route) => {
@@ -85,10 +70,7 @@ test.describe('Dashboard de pacientes — TERAPEUTA (/pacientes)', () => {
       .waitFor({ state: 'visible', timeout: 5_000 })
       .then(() => true)
       .catch(() => false)
-    test.skip(
-      !disponible,
-      'Gate esTerapeuta && miPermiso===EDICION_LIMITADA es inalcanzable para TERAPEUTA: el backend nunca asigna EDICION_LIMITADA al dueño (siempre null) y el endpoint de colaboradores rechaza emails TERAPEUTA (404 "Usuario no encontrado", verificado vía API). Pre-existente, fuera de alcance (R6).',
-    )
+    test.skip(!disponible, 'Menú de acciones no visible para la cuenta TERAPEUTA de prueba.')
 
     // Intercepta y responde el DELETE con demora + 204, sin borrar de verdad
     // al paciente de prueba compartido (no se deja pasar a la API real).
