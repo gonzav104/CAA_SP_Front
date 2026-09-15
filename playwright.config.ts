@@ -19,6 +19,7 @@ export default defineConfig({
         '**/pictogramas-guard.spec.ts',
         '**/pictogramas-guard.setup.ts',
         '**/dashboard-pacientes.spec.ts',
+        '**/design-tokens.spec.ts',
       ],
     },
     {
@@ -61,6 +62,18 @@ export default defineConfig({
         // Default FAMILIAR: el describe TERAPEUTA reutiliza
         // shell-navegacion.json vía test.use(), mismo patrón que
         // pictogramas-guard.spec.ts.
+        storageState: 'tests/.auth/pictogramas-guard-familiar.json',
+      },
+      dependencies: ['setup-pictogramas-guard', 'setup'],
+    },
+    {
+      name: 'design-tokens',
+      testMatch: '**/design-tokens.spec.ts',
+      use: {
+        browserName: 'chromium',
+        // Default FAMILIAR: el describe TERAPEUTA reutiliza
+        // shell-navegacion.json vía test.use(), mismo patrón que
+        // dashboard-pacientes.spec.ts.
         storageState: 'tests/.auth/pictogramas-guard-familiar.json',
       },
       dependencies: ['setup-pictogramas-guard', 'setup'],
