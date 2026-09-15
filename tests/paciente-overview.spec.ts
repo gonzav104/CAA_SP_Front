@@ -62,74 +62,95 @@ test.describe('PacienteOverview — /pacientes/:pacienteId (design/spec sdd/paci
     })
 
     test.describe('con una cartilla marcada como principal', () => {
+      // Paciente propio, creado y destruido por este describe — no depende de
+      // un ID de fixture compartido con otros specs (ver hallazgo obs #71:
+      // un ID hardcodeado quedó huérfano cuando se reseteó la DB de dev).
+      let pacienteId: string
       let cartillaId: string
 
       test.beforeAll(async () => {
         const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
-        const cartillaResp = await api.post(
-          `${API_BASE}/api/pacientes/${PACIENTE_ID_TERAPEUTA}/cartillas`,
-          { data: { nombre: `[E2E Overview] Principal ${Date.now()}`, esPrincipal: true } },
-        )
+        const pacienteResp = await api.post(`${API_BASE}/api/pacientes`, {
+          data: {
+            nombre: 'E2E',
+            apellido: `Overview-ConPrincipal-${Date.now()}`,
+            fechaNacimiento: '2015-01-01',
+          },
+        })
+        const paciente = (await pacienteResp.json()) as { id: string }
+        pacienteId = paciente.id
+        const cartillaResp = await api.post(`${API_BASE}/api/pacientes/${pacienteId}/cartillas`, {
+          data: { nombre: `[E2E Overview] Principal ${Date.now()}`, esPrincipal: true },
+        })
         const cartilla = (await cartillaResp.json()) as { id: string }
         cartillaId = cartilla.id
         await api.dispose()
       })
 
       test.afterAll(async () => {
-        if (!cartillaId) return
+        if (!pacienteId) return
         const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
-        await api.delete(
-          `${API_BASE}/api/pacientes/${PACIENTE_ID_TERAPEUTA}/cartillas/${cartillaId}`,
-        )
+        if (cartillaId) {
+          await api.delete(`${API_BASE}/api/pacientes/${pacienteId}/cartillas/${cartillaId}`)
+        }
+        await api.delete(`${API_BASE}/api/pacientes/${pacienteId}`)
         await api.dispose()
       })
 
       test('la entrada directa del hero lleva a esa cartilla en 2 saltos de navegación', async ({
         page,
       }) => {
-        await page.goto(`${BASE}/pacientes/${PACIENTE_ID_TERAPEUTA}`)
+        await page.goto(`${BASE}/pacientes/${pacienteId}`)
         await page.getByRole('link', { name: /Abrir cartilla principal/ }).click()
-        await page.waitForURL(
-          `${BASE}/pacientes/${PACIENTE_ID_TERAPEUTA}/cartillas/${cartillaId}`,
-          { timeout: 10_000 },
-        )
-        await expect(page).toHaveURL(
-          `${BASE}/pacientes/${PACIENTE_ID_TERAPEUTA}/cartillas/${cartillaId}`,
-        )
+        await page.waitForURL(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}`, {
+          timeout: 10_000,
+        })
+        await expect(page).toHaveURL(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}`)
       })
     })
 
     test.describe('con cartillas, ninguna marcada como principal', () => {
+      // Mismo motivo que el describe anterior: paciente propio, no compartido.
+      let pacienteId: string
       let cartillaId: string
 
       test.beforeAll(async () => {
         const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
-        const cartillaResp = await api.post(
-          `${API_BASE}/api/pacientes/${PACIENTE_ID_TERAPEUTA}/cartillas`,
-          { data: { nombre: `[E2E Overview] No principal ${Date.now()}` } },
-        )
+        const pacienteResp = await api.post(`${API_BASE}/api/pacientes`, {
+          data: {
+            nombre: 'E2E',
+            apellido: `Overview-SinPrincipal-${Date.now()}`,
+            fechaNacimiento: '2015-01-01',
+          },
+        })
+        const paciente = (await pacienteResp.json()) as { id: string }
+        pacienteId = paciente.id
+        const cartillaResp = await api.post(`${API_BASE}/api/pacientes/${pacienteId}/cartillas`, {
+          data: { nombre: `[E2E Overview] No principal ${Date.now()}` },
+        })
         const cartilla = (await cartillaResp.json()) as { id: string }
         cartillaId = cartilla.id
         await api.dispose()
       })
 
       test.afterAll(async () => {
-        if (!cartillaId) return
+        if (!pacienteId) return
         const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
-        await api.delete(
-          `${API_BASE}/api/pacientes/${PACIENTE_ID_TERAPEUTA}/cartillas/${cartillaId}`,
-        )
+        if (cartillaId) {
+          await api.delete(`${API_BASE}/api/pacientes/${pacienteId}/cartillas/${cartillaId}`)
+        }
+        await api.delete(`${API_BASE}/api/pacientes/${pacienteId}`)
         await api.dispose()
       })
 
       test('el hero muestra "Sin cartilla principal" con link a la lista de cartillas', async ({
         page,
       }) => {
-        await page.goto(`${BASE}/pacientes/${PACIENTE_ID_TERAPEUTA}`)
+        await page.goto(`${BASE}/pacientes/${pacienteId}`)
         await expect(page.getByText('Sin cartilla principal')).toBeVisible()
         await expect(
           page.getByRole('link', { name: /Sin cartilla principal|Ver cartillas/ }),
-        ).toHaveAttribute('href', `/pacientes/${PACIENTE_ID_TERAPEUTA}/cartillas`)
+        ).toHaveAttribute('href', `/pacientes/${pacienteId}/cartillas`)
       })
     })
 
