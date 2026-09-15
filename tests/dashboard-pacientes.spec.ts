@@ -56,8 +56,6 @@ test.describe('Dashboard de pacientes — TERAPEUTA (/pacientes)', () => {
     await dialog.getByRole('button', { name: 'Cancelar' }).click()
     await expect(dialog).toBeHidden()
     expect(deleteEnviado).toBe(false)
-
-    await page.unroute('**/api/pacientes/*')
   })
 
   test('confirmar deshabilita las acciones mientras la request está pendiente', async ({
@@ -88,8 +86,6 @@ test.describe('Dashboard de pacientes — TERAPEUTA (/pacientes)', () => {
 
     await expect(dialog.getByRole('button', { name: 'Eliminando…' })).toBeDisabled()
     await expect(dialog.getByRole('button', { name: 'Cancelar' })).toBeDisabled()
-
-    await page.unroute('**/api/pacientes/*')
   })
 
   test('estado vacío muestra el CTA "Nuevo paciente" (header + tarjeta vacía)', async ({
@@ -104,8 +100,6 @@ test.describe('Dashboard de pacientes — TERAPEUTA (/pacientes)', () => {
     await expect(page.getByText('Todavía no hay pacientes')).toBeVisible()
     // El CTA persiste en el header y se repite en la tarjeta de estado vacío.
     await expect(page.getByRole('link', { name: 'Nuevo paciente' })).toHaveCount(2)
-
-    await page.unroute('**/api/pacientes')
   })
 
   test('estado de error muestra el botón de reintentar', async ({ page }) => {
@@ -120,8 +114,6 @@ test.describe('Dashboard de pacientes — TERAPEUTA (/pacientes)', () => {
     await page.goto(`${BASE}/pacientes`)
 
     await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible()
-
-    await page.unroute('**/api/pacientes')
   })
 })
 
@@ -152,7 +144,5 @@ test.describe('Dashboard familiar — FAMILIAR (/familiar)', () => {
 
     await expect(page.getByText('Todavía no estás vinculado a ningún paciente')).toBeVisible()
     await expect(page.getByRole('main').getByRole('link')).toHaveCount(0)
-
-    await page.unroute('**/api/pacientes')
   })
 })
