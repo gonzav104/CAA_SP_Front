@@ -259,6 +259,24 @@ test.describe('PacienteOverview — /pacientes/:pacienteId (design/spec sdd/paci
       test.afterAll(async () => {
         if (!pacienteId) return
         const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
+        // El backend NO borra en cascada: si el paciente conserva sesiones o
+        // pictogramas-custom, `DELETE /api/pacientes/{id}` responde 500 y el
+        // paciente queda huérfano en la base de datos de desarrollo para
+        // siempre (verificado: 14 pacientes acumulados por este mismo hueco).
+        // Cada colección se vacía antes de borrar el paciente; `colaboradores`
+        // se identifica por `usuarioId`, no por `id` (ver types/Colaborador).
+        for (const [recurso, campoId] of [
+          ['sesiones', 'id'],
+          ['colaboradores', 'usuarioId'],
+          ['pictogramas-custom', 'id'],
+        ] as const) {
+          const resp = await api.get(`${API_BASE}/api/pacientes/${pacienteId}/${recurso}`)
+          if (!resp.ok()) continue
+          const items = (await resp.json()) as Record<string, string>[]
+          for (const item of items) {
+            await api.delete(`${API_BASE}/api/pacientes/${pacienteId}/${recurso}/${item[campoId]}`)
+          }
+        }
         await api.delete(`${API_BASE}/api/pacientes/${pacienteId}`)
         await api.dispose()
       })
