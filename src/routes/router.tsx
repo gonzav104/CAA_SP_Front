@@ -66,6 +66,9 @@ const ListaSesiones = lazy(() =>
 const NuevaSesion = lazy(() =>
   import('../pages/sesiones/NuevaSesion').then((m) => ({ default: m.NuevaSesion })),
 )
+const PacienteOverview = lazy(() =>
+  import('../pages/pacientes/PacienteOverview').then((m) => ({ default: m.PacienteOverview })),
+)
 
 /**
  * Metadata de ruta leída por `DashboardLayout` vía `useMatches` (design
@@ -184,11 +187,12 @@ export const router = createBrowserRouter([
                 handle: { titulo: 'Editar paciente' } satisfies RouteHandle,
               },
               {
-                // El detalle intermedio se obvió: la URL raíz de un paciente
-                // redirige directo a sus cartillas, el destino al que llevaba
-                // el click desde la lista de pacientes.
+                // La raíz de un paciente ahora es su landing (PacienteOverview,
+                // TERAPEUTA-exclusive, obs #65/#64): entrada directa a la
+                // cartilla principal. FAMILIAR conserva el redirect directo a
+                // cartillas, byte-for-byte igual que antes de esta unidad.
                 path: 'pacientes/:pacienteId',
-                element: <Navigate to="cartillas" replace />,
+                element: <PacienteOverviewIndex />,
                 handle: { titulo: 'Paciente' } satisfies RouteHandle,
               },
               {
@@ -223,6 +227,24 @@ function PacientesIndex() {
     return <Navigate to="/familiar" replace />
   }
   return <ListaPacientes />
+}
+
+/**
+ * Raíz de un paciente (`pacientes/:pacienteId`): bifurca por rol, mismo
+ * patrón que `PacientesIndex`. TERAPEUTA ve la landing (`PacienteOverview`);
+ * FAMILIAR conserva el redirect directo a `cartillas` (relativo a esta ruta),
+ * idéntico al comportamiento previo a esta unidad (spec "FAMILIAR redirect
+ * unchanged", obs #64).
+ */
+function PacienteOverviewIndex() {
+  const { usuario } = useAuth()
+  if (!usuario) {
+    return null
+  }
+  if (usuario.rol === 'FAMILIAR') {
+    return <Navigate to="cartillas" replace />
+  }
+  return <PacienteOverview />
 }
 
 /**
