@@ -201,6 +201,14 @@ test.describe('PacienteOverview — /pacientes/:pacienteId (design/spec sdd/paci
 
     test.describe('resumen: sesiones, colaboradores y pictogramas con datos (4.1)', () => {
       let pacienteId: string
+      // `fechaHora` tal como la devuelve el backend, no la que se envió: un
+      // POST con `new Date().toISOString()` no garantiza que el valor
+      // persistido/retornado sea el mismo instante exacto (confirmado en este
+      // sandbox: comparar contra un `new Date()` recalculado —incluso dentro
+      // del propio navegador— no coincidía con la fecha realmente renderizada
+      // cerca de la medianoche local). La única fuente confiable es la
+      // respuesta real de la API, formateada igual que la produce la UI.
+      let fechaHoraSesionHoy: string
 
       test.beforeAll(async () => {
         const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
@@ -221,12 +229,14 @@ test.describe('PacienteOverview — /pacientes/:pacienteId (design/spec sdd/paci
             objetivosTrabajados: 'Sesión vieja (no debe ganar como más reciente)',
           },
         })
-        await api.post(`${API_BASE}/api/pacientes/${pacienteId}/sesiones`, {
+        const sesionHoyResp = await api.post(`${API_BASE}/api/pacientes/${pacienteId}/sesiones`, {
           data: {
             fechaHora: new Date().toISOString(),
             objetivosTrabajados: 'Sesión de hoy (debe ser la más reciente)',
           },
         })
+        const sesionHoy = (await sesionHoyResp.json()) as { fechaHora: string }
+        fechaHoraSesionHoy = sesionHoy.fechaHora
 
         await api.post(`${API_BASE}/api/pacientes/${pacienteId}/colaboradores`, {
           data: { email: EMAIL_COLABORADOR_FIXTURE, permiso: 'LECTURA' },
@@ -262,7 +272,16 @@ test.describe('PacienteOverview — /pacientes/:pacienteId (design/spec sdd/paci
         // "Colaboradores"/"Pictogramas" (navegación), que no son las tarjetas
         // de resumen que esta escena verifica.
         const main = page.getByRole('main')
-        const fechaEsperada = new Date().toLocaleDateString('es-AR')
+        // Formateada dentro de Chromium, a partir del `fechaHora` que
+        // realmente devolvió el backend (no de un `new Date()` recalculado):
+        // así la aserción usa la misma fuente y el mismo formateo
+        // (`toLocaleDateString('es-AR')`) que `formatearFechaISO` en
+        // producción, sin depender de que "ahora" siga siendo el mismo
+        // instante que cuando se creó la sesión en el fixture.
+        const fechaEsperada = await page.evaluate(
+          (iso) => new Date(iso).toLocaleDateString('es-AR'),
+          fechaHoraSesionHoy,
+        )
         const tarjetaSesiones = main.getByRole('link', { name: /Sesiones/ })
         await expect(tarjetaSesiones).toBeVisible()
         await expect(tarjetaSesiones.getByText('Hoy')).toBeVisible()
