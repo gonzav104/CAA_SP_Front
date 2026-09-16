@@ -1,19 +1,25 @@
-import { ArrowRight, LayoutGrid } from 'lucide-react'
+import { ArrowRight, CalendarDays, Image, LayoutGrid, UsersRound, type LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { ErrorCarga } from '../../components/estados'
+import { Badge } from '../../components/ui/badge'
 import { Card, CardContent } from '../../components/ui/card'
 import { Skeleton } from '../../components/ui/skeleton'
 import { useCartillas } from '../../hooks/cartillas'
+import { useColaboradores } from '../../hooks/colaboradores'
+import { useAuth } from '../../hooks/useAuth'
 import { usePaciente } from '../../hooks/pacientes'
-import { calcularEdad } from '../../lib/paciente'
-import { encontrarCartillaPrincipal } from '../../lib/resumenPaciente'
+import { usePictogramasCustom } from '../../hooks/pictogramas-custom'
+import { useSesiones } from '../../hooks/sesiones'
+import { calcularEdad, formatearFechaISO } from '../../lib/paciente'
+import { calcularRecencia, encontrarCartillaPrincipal, sesionMasReciente } from '../../lib/resumenPaciente'
 
 /**
  * Landing del paciente para TERAPEUTA (`pacientes/:pacienteId`, design/spec
- * `sdd/paciente-overview`, obs #65/#64). PR3a (Fase 3, obs #66): SOLO la
- * tira de identidad + el hero de entrada directa a la cartilla principal.
- * El resumen cruzado (Sesiones/Colaboradores/Pictogramas) es PR3b — no se
- * agrega ninguna llamada a useSesiones/useColaboradores/usePictogramasCustom
- * en este archivo todavía.
+ * `sdd/paciente-overview`, obs #65/#64). PR3a (Fase 3, obs #66): tira de
+ * identidad + hero de entrada directa a la cartilla principal. PR3b
+ * (Fase 4): resumen cruzado (Sesiones/Colaboradores/Pictogramas) bajo el
+ * hero, cada uno con estados independientes de loading/vacío/error.
  */
 
 /** Tira de identidad (arriba de todo, mínimo peso visual): solo la edad. El
@@ -152,6 +158,170 @@ function Hero({ pacienteId }: { pacienteId: string }) {
   )
 }
 
+/**
+ * Envoltorio de una tarjeta del resumen cruzado: siempre `bg-card
+ * border-border` — nunca `bg-primary` (design "Secondary summary row"):
+ * las 3 tarjetas son pares entre sí, subordinadas al hero. Full-card
+ * `<Link>` hacia su propia sección.
+ */
+function TarjetaResumenLink({
+  href,
+  icon: Icon,
+  titulo,
+  children,
+}: {
+  href: string
+  icon: LucideIcon
+  titulo: string
+  children: ReactNode
+}) {
+  return (
+    <Link
+      to={href}
+      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm outline-none transition-colors hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <Icon className="size-4" aria-hidden="true" />
+        {titulo}
+      </span>
+      {children}
+    </Link>
+  )
+}
+
+/**
+ * Tarjeta Sesiones: sesión más reciente + chip de recencia (nunca solo
+ * color, `calcularRecencia`) o estado vacío/error independiente.
+ */
+function TarjetaSesiones({ pacienteId }: { pacienteId: string }) {
+  const { usuario } = useAuth()
+  const esTerapeuta = usuario?.rol === 'TERAPEUTA'
+  const sesionesQuery = useSesiones(pacienteId, esTerapeuta)
+
+  if (sesionesQuery.isPending) {
+    return <Skeleton className="h-28 rounded-xl" />
+  }
+
+  if (sesionesQuery.isError) {
+    return (
+      <ErrorCarga
+        mensaje="No se pudieron cargar las sesiones."
+        onReintentar={() => void sesionesQuery.refetch()}
+      />
+    )
+  }
+
+  const masReciente = sesionMasReciente(sesionesQuery.data)
+  const href = `/pacientes/${pacienteId}/sesiones`
+
+  if (!masReciente) {
+    return (
+      <TarjetaResumenLink href={href} icon={CalendarDays} titulo="Sesiones">
+        <p className="text-sm text-muted-foreground">Todavía no hay sesiones registradas.</p>
+      </TarjetaResumenLink>
+    )
+  }
+
+  const recencia = calcularRecencia(masReciente.fechaHora, new Date())
+  return (
+    <TarjetaResumenLink href={href} icon={CalendarDays} titulo="Sesiones">
+      <Badge variant={recencia.variant} className="w-fit">
+        {recencia.etiqueta}
+      </Badge>
+      <p className="text-sm text-muted-foreground">{formatearFechaISO(masReciente.fechaHora)}</p>
+    </TarjetaResumenLink>
+  )
+}
+
+/** Tarjeta Colaboradores: conteo, o estado vacío/error independiente. */
+function TarjetaColaboradores({ pacienteId }: { pacienteId: string }) {
+  const { usuario } = useAuth()
+  const esTerapeuta = usuario?.rol === 'TERAPEUTA'
+  const colaboradoresQuery = useColaboradores(pacienteId, esTerapeuta)
+  const href = `/pacientes/${pacienteId}/colaboradores`
+
+  if (colaboradoresQuery.isPending) {
+    return <Skeleton className="h-28 rounded-xl" />
+  }
+
+  if (colaboradoresQuery.isError) {
+    return (
+      <ErrorCarga
+        mensaje="No se pudieron cargar los colaboradores."
+        onReintentar={() => void colaboradoresQuery.refetch()}
+      />
+    )
+  }
+
+  const cantidad = colaboradoresQuery.data.length
+  if (cantidad === 0) {
+    return (
+      <TarjetaResumenLink href={href} icon={UsersRound} titulo="Colaboradores">
+        <p className="text-sm text-muted-foreground">Todavía no hay colaboradores agregados.</p>
+      </TarjetaResumenLink>
+    )
+  }
+
+  return (
+    <TarjetaResumenLink href={href} icon={UsersRound} titulo="Colaboradores">
+      <p className="text-2xl font-semibold text-foreground">
+        {cantidad} {cantidad === 1 ? 'colaborador' : 'colaboradores'}
+      </p>
+    </TarjetaResumenLink>
+  )
+}
+
+/** Tarjeta Pictogramas: conteo + ícono `Image` (Design Call #2, obs #66), o estado vacío/error independiente. */
+function TarjetaPictogramas({ pacienteId }: { pacienteId: string }) {
+  const pictogramasQuery = usePictogramasCustom(pacienteId)
+  const href = `/pacientes/${pacienteId}/pictogramas`
+
+  if (pictogramasQuery.isPending) {
+    return <Skeleton className="h-28 rounded-xl" />
+  }
+
+  if (pictogramasQuery.isError) {
+    return (
+      <ErrorCarga
+        mensaje="No se pudieron cargar los pictogramas."
+        onReintentar={() => void pictogramasQuery.refetch()}
+      />
+    )
+  }
+
+  const cantidad = pictogramasQuery.data.length
+  if (cantidad === 0) {
+    return (
+      <TarjetaResumenLink href={href} icon={Image} titulo="Pictogramas">
+        <p className="text-sm text-muted-foreground">Todavía no hay pictogramas personalizados.</p>
+      </TarjetaResumenLink>
+    )
+  }
+
+  return (
+    <TarjetaResumenLink href={href} icon={Image} titulo="Pictogramas">
+      <p className="text-2xl font-semibold text-foreground">
+        {cantidad} {cantidad === 1 ? 'pictograma' : 'pictogramas'}
+      </p>
+    </TarjetaResumenLink>
+  )
+}
+
+/**
+ * Fila de resumen cruzado (design "Secondary summary row"): `grid
+ * grid-cols-1 sm:grid-cols-3 gap-4`, 3 tarjetas pares entre sí. Cada query
+ * es independiente — loading/vacío/error nunca bloquea a las otras 2.
+ */
+function ResumenPaciente({ pacienteId }: { pacienteId: string }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <TarjetaSesiones pacienteId={pacienteId} />
+      <TarjetaColaboradores pacienteId={pacienteId} />
+      <TarjetaPictogramas pacienteId={pacienteId} />
+    </div>
+  )
+}
+
 /** Landing del paciente (TERAPEUTA): identidad + hero de entrada directa. */
 export function PacienteOverview() {
   const { pacienteId } = useParams<{ pacienteId: string }>()
@@ -167,6 +337,7 @@ export function PacienteOverview() {
     <div className="flex flex-col gap-4">
       <TiraIdentidad pacienteId={pacienteId} />
       <Hero pacienteId={pacienteId} />
+      <ResumenPaciente pacienteId={pacienteId} />
     </div>
   )
 }
