@@ -66,6 +66,18 @@ const ListaSesiones = lazy(() =>
 const NuevaSesion = lazy(() =>
   import('../pages/sesiones/NuevaSesion').then((m) => ({ default: m.NuevaSesion })),
 )
+const PacienteOverview = lazy(() =>
+  import('../pages/pacientes/PacienteOverview').then((m) => ({ default: m.PacienteOverview })),
+)
+
+/**
+ * Metadata de ruta leída por `DashboardLayout` vía `useMatches` (design
+ * `sdd/paciente-overview`, obs #65): título de sección para el header,
+ * reemplaza el pathname-parsing que antes vivía en un helper dedicado.
+ */
+export interface RouteHandle {
+  titulo: string
+}
 
 /**
  * Data router de la app (D1).
@@ -108,16 +120,26 @@ export const router = createBrowserRouter([
                 element: <PacientesIndex />,
               },
               { path: 'pacientes/nuevo', element: <RequiereTerapeuta><NuevoPaciente /></RequiereTerapeuta> },
-              { path: 'pacientes/:pacienteId/cartillas', element: <ListaCartillas /> },
+              {
+                path: 'pacientes/:pacienteId/cartillas',
+                element: <ListaCartillas />,
+                handle: { titulo: 'Cartillas' } satisfies RouteHandle,
+              },
               {
                 path: 'pacientes/:pacienteId/cartillas/:idCartilla',
                 element: <CartillaView />,
+                handle: { titulo: 'Cartillas' } satisfies RouteHandle,
               },
               {
                 path: 'pacientes/:pacienteId/cartillas/:idCartilla/editar',
                 element: <EditorCartilla />,
+                handle: { titulo: 'Cartillas' } satisfies RouteHandle,
               },
-              { path: 'pacientes/:pacienteId/sesiones', element: <ListaSesiones /> },
+              {
+                path: 'pacientes/:pacienteId/sesiones',
+                element: <ListaSesiones />,
+                handle: { titulo: 'Sesiones' } satisfies RouteHandle,
+              },
               {
                 path: 'pacientes/:pacienteId/sesiones/nuevo',
                 element: (
@@ -125,6 +147,7 @@ export const router = createBrowserRouter([
                     <NuevaSesion />
                   </RequiereTerapeuta>
                 ),
+                handle: { titulo: 'Nueva sesión' } satisfies RouteHandle,
               },
               {
                 path: 'pacientes/:pacienteId/sesiones/:idSesion/editar',
@@ -133,10 +156,12 @@ export const router = createBrowserRouter([
                     <EditarSesion />
                   </RequiereTerapeuta>
                 ),
+                handle: { titulo: 'Editar sesión' } satisfies RouteHandle,
               },
               {
                 path: 'pacientes/:pacienteId/colaboradores',
                 element: <ListaColaboradores />,
+                handle: { titulo: 'Colaboradores' } satisfies RouteHandle,
               },
               {
                 path: 'pacientes/:pacienteId/colaboradores/agregar',
@@ -145,6 +170,7 @@ export const router = createBrowserRouter([
                     <AgregarColaborador />
                   </RequiereTerapeuta>
                 ),
+                handle: { titulo: 'Agregar colaborador' } satisfies RouteHandle,
               },
               {
                 path: 'pacientes/:pacienteId/pictogramas',
@@ -153,16 +179,27 @@ export const router = createBrowserRouter([
                     <PictogramasCustom />
                   </RequiereTerapeuta>
                 ),
+                handle: { titulo: 'Pictogramas' } satisfies RouteHandle,
               },
-              { path: 'pacientes/:pacienteId/editar', element: <RequiereTerapeuta><EditarPaciente /></RequiereTerapeuta> },
               {
-                // El detalle intermedio se obvió: la URL raíz de un paciente
-                // redirige directo a sus cartillas, el destino al que llevaba
-                // el click desde la lista de pacientes.
-                path: 'pacientes/:pacienteId',
-                element: <Navigate to="cartillas" replace />,
+                path: 'pacientes/:pacienteId/editar',
+                element: <RequiereTerapeuta><EditarPaciente /></RequiereTerapeuta>,
+                handle: { titulo: 'Editar paciente' } satisfies RouteHandle,
               },
-              { path: 'familiar', element: <FamiliarDashboard /> },
+              {
+                // La raíz de un paciente ahora es su landing (PacienteOverview,
+                // TERAPEUTA-exclusive, obs #65/#64): entrada directa a la
+                // cartilla principal. FAMILIAR conserva el redirect directo a
+                // cartillas, byte-for-byte igual que antes de esta unidad.
+                path: 'pacientes/:pacienteId',
+                element: <PacienteOverviewIndex />,
+                handle: { titulo: 'Paciente' } satisfies RouteHandle,
+              },
+              {
+                path: 'familiar',
+                element: <FamiliarDashboard />,
+                handle: { titulo: 'Mi familia' } satisfies RouteHandle,
+              },
             ],
           },
           {
@@ -190,6 +227,24 @@ function PacientesIndex() {
     return <Navigate to="/familiar" replace />
   }
   return <ListaPacientes />
+}
+
+/**
+ * Raíz de un paciente (`pacientes/:pacienteId`): bifurca por rol, mismo
+ * patrón que `PacientesIndex`. TERAPEUTA ve la landing (`PacienteOverview`);
+ * FAMILIAR conserva el redirect directo a `cartillas` (relativo a esta ruta),
+ * idéntico al comportamiento previo a esta unidad (spec "FAMILIAR redirect
+ * unchanged", obs #64).
+ */
+function PacienteOverviewIndex() {
+  const { usuario } = useAuth()
+  if (!usuario) {
+    return null
+  }
+  if (usuario.rol === 'FAMILIAR') {
+    return <Navigate to="cartillas" replace />
+  }
+  return <PacienteOverview />
 }
 
 /**

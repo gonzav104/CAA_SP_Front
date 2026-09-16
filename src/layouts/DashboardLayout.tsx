@@ -1,11 +1,27 @@
-import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Outlet, useLocation, useMatches, useNavigate, useParams } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { usePaciente } from '../hooks/pacientes'
+import { nombreCompleto } from '../lib/paciente'
 import { AppHeader } from './shell/AppHeader'
 import { AppSidebar } from './shell/AppSidebar'
 import { MobileNavDrawer } from './shell/MobileNavDrawer'
 import { construirNavItems } from './shell/navItems'
-import { tituloDeSeccion } from './shell/tituloDeSeccion'
+
+/**
+ * Metadata de ruta leída vía `useMatches` (design `sdd/paciente-overview`,
+ * obs #65): reemplaza el pathname-parsing que antes vivía en un helper
+ * dedicado, ya eliminado. RR7 tipa `handle` como `unknown` por defecto —
+ * esta interfaz local solo tipa el cast en este punto de lectura (no se
+ * comparte con `routes/router.tsx`, que define su propia copia local para
+ * tipar los `handle` que declara).
+ */
+interface RouteHandle {
+  titulo: string
+}
+
+/** Título usado cuando ninguna ruta activa expone `handle.titulo` (p.ej. `/pacientes`, `/`). */
+const TITULO_POR_DEFECTO = 'Pacientes'
 
 /**
  * Shell de la Zona A (D6): composición de sidebar fija + drawer móvil + header.
@@ -13,15 +29,19 @@ import { tituloDeSeccion } from './shell/tituloDeSeccion'
  * short-circuit de auth. El cierre por Escape ahora vive scopeado dentro de
  * `MobileNavDrawer` (parte de su focus trap), ya no es un listener permanente
  * en `window`. Toda la presentación vive en `./shell/*`, consumiendo
- * `construirNavItems` como fuente única de items.
+ * `construirNavItems` como fuente única de items (ahora `NavGroup[]`,
+ * renderizados con estructura por `SidebarNav`) y `usePaciente` como única
+ * fuente del nombre de paciente, threadeado a `AppHeader` por props.
  */
 export function DashboardLayout() {
   const { usuario, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const matches = useMatches()
   const { pacienteId } = useParams<{ pacienteId: string }>()
   const [drawerAbierto, setDrawerAbierto] = useState(false)
   const disparadorRef = useRef<HTMLButtonElement>(null)
+  const pacienteQuery = usePaciente(pacienteId)
 
   // Cierra el drawer al cambiar de ruta (navegación desde el menú).
   /* eslint-disable react/set-state-in-effect -- patrón requerido por design: el estado del drawer vive acá y la navegación cambia la ruta externamente. */
@@ -36,12 +56,16 @@ export function DashboardLayout() {
     return null
   }
 
-  // TODO(paciente-overview PR2): `AppSidebar`/`MobileNavDrawer` todavía esperan
-  // `NavItemDef[]` (render plano); acá se aplana `NavGroup[]` como shim de
-  // compatibilidad hasta que PR2 los actualice para renderizar grupos
-  // (encabezados, dividers, `enfasis`). El orden y el contenido no cambian.
-  const items = construirNavItems({ rol: usuario.rol, pacienteId }).flatMap((grupo) => grupo.items)
-  const titulo = tituloDeSeccion(location.pathname)
+  const grupos = construirNavItems({ rol: usuario.rol, pacienteId })
+
+  // El match más profundo (findLast) que declare `handle.titulo` gana: una
+  // ruta hija sin handle propio hereda el título de su ancestro más cercano
+  // que sí lo declare.
+  const matchConTitulo = matches.findLast((match) => (match.handle as RouteHandle | undefined)?.titulo)
+  const titulo = (matchConTitulo?.handle as RouteHandle | undefined)?.titulo ?? TITULO_POR_DEFECTO
+
+  const nombrePaciente = pacienteQuery.data ? nombreCompleto(pacienteQuery.data) : undefined
+  const pacienteCargando = Boolean(pacienteId) && pacienteQuery.isPending
 
   const manejarLogout = async () => {
     await logout()
@@ -52,11 +76,11 @@ export function DashboardLayout() {
 
   return (
     <div className="min-h-svh bg-muted/40">
-      <AppSidebar items={items} />
+      <AppSidebar groups={grupos} />
       <MobileNavDrawer
         abierto={drawerAbierto}
         onCerrar={cerrarDrawer}
-        items={items}
+        groups={grupos}
         disparadorRef={disparadorRef}
       />
 
@@ -64,6 +88,8 @@ export function DashboardLayout() {
         <AppHeader
           usuario={usuario}
           titulo={titulo}
+          nombrePaciente={nombrePaciente}
+          pacienteCargando={pacienteCargando}
           drawerAbierto={drawerAbierto}
           onAbrirDrawer={() => setDrawerAbierto(true)}
           onLogout={() => void manejarLogout()}

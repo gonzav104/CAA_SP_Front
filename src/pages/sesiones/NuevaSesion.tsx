@@ -11,8 +11,6 @@ import { usePaciente } from '../../hooks/pacientes'
 import { useCrearSesion } from '../../hooks/sesiones'
 import { formatError } from '../../lib/utils'
 import { DetalleSkeleton, ErrorCarga } from '../../components/estados'
-import { LabelPacienteContexto } from '../../components/LabelPacienteContexto'
-import { nombreCompleto } from '../../lib/paciente'
 import { sesionSchema, toSesionInput, type SesionValues } from './schemas'
 
 /**
@@ -71,13 +69,7 @@ export function NuevaSesion() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
-        <p className="text-sm text-muted-foreground">
-          <LabelPacienteContexto
-            cargando={false}
-            nombre={pacienteQuery.data ? nombreCompleto(pacienteQuery.data) : undefined}
-          />
-        </p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-tight">Nueva sesión</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Nueva sesión</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Registrá el trabajo realizado en la sesión con el paciente.
         </p>

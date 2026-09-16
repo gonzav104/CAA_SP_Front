@@ -4,7 +4,6 @@ import { Controller, useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { DetalleSkeleton, ErrorCarga } from '../../components/estados'
-import { LabelPacienteContexto } from '../../components/LabelPacienteContexto'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
 import { Field, FieldError, FieldLabel } from '../../components/ui/field'
@@ -18,7 +17,6 @@ import {
 } from '../../components/ui/select'
 import { useAgregarColaborador } from '../../hooks/colaboradores'
 import { usePaciente } from '../../hooks/pacientes'
-import { nombreCompleto } from '../../lib/paciente'
 import { formatError } from '../../lib/utils'
 import type { Permiso } from '../../types'
 
@@ -88,13 +86,7 @@ export function AgregarColaborador() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
       <div>
-        <p className="text-sm text-muted-foreground">
-          <LabelPacienteContexto
-            cargando={false}
-            nombre={pacienteQuery.data ? nombreCompleto(pacienteQuery.data) : undefined}
-          />
-        </p>
-        <h2 className="mt-1 text-2xl font-semibold tracking-tight">Agregar colaborador</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">Agregar colaborador</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           La persona debe tener una cuenta en CAA para poder sumarla.
         </p>
