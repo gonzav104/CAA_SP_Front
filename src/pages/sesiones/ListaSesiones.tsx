@@ -22,11 +22,9 @@ import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { CardVacio, ErrorCarga, FilasSkeleton } from '../../components/estados'
 import { useEliminarSesion, useSesiones } from '../../hooks/sesiones'
-import { usePaciente } from '../../hooks/pacientes'
 import { useAuth } from '../../hooks/useAuth'
-import { formatearFechaISO, nombreCompleto } from '../../lib/paciente'
+import { formatearFechaISO } from '../../lib/paciente'
 import { formatError } from '../../lib/utils'
-import { LabelPacienteContexto } from '../../components/LabelPacienteContexto'
 import type { Sesion } from '../../types'
 
 /**
@@ -47,7 +45,6 @@ export function ListaSesiones() {
   const idValido = id !== undefined && id.trim() !== ''
   const { usuario } = useAuth()
   const esTerapeuta = usuario?.rol === 'TERAPEUTA'
-  const pacienteQuery = usePaciente(idValido ? id : undefined)
   const sesionesQuery = useSesiones(idValido ? id : undefined, esTerapeuta)
   const eliminar = useEliminarSesion()
   const [aEliminar, setAEliminar] = useState<Sesion | null>(null)
@@ -72,13 +69,7 @@ export function ListaSesiones() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">
-            <LabelPacienteContexto
-              cargando={pacienteQuery.isPending}
-              nombre={pacienteQuery.data ? nombreCompleto(pacienteQuery.data) : undefined}
-            />
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">Sesiones</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">Sesiones</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Registros de sesiones de trabajo con el paciente.
           </p>

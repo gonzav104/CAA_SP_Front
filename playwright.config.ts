@@ -21,6 +21,7 @@ export default defineConfig({
         '**/dashboard-pacientes.spec.ts',
         '**/design-tokens.spec.ts',
         '**/modo-uso.spec.ts',
+        '**/paciente-overview.spec.ts',
       ],
     },
     {
@@ -70,6 +71,18 @@ export default defineConfig({
     {
       name: 'design-tokens',
       testMatch: '**/design-tokens.spec.ts',
+      use: {
+        browserName: 'chromium',
+        // Default FAMILIAR: el describe TERAPEUTA reutiliza
+        // shell-navegacion.json vía test.use(), mismo patrón que
+        // dashboard-pacientes.spec.ts.
+        storageState: 'tests/.auth/pictogramas-guard-familiar.json',
+      },
+      dependencies: ['setup-pictogramas-guard', 'setup'],
+    },
+    {
+      name: 'paciente-overview',
+      testMatch: '**/paciente-overview.spec.ts',
       use: {
         browserName: 'chromium',
         // Default FAMILIAR: el describe TERAPEUTA reutiliza

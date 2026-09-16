@@ -16,6 +16,15 @@ import type { Usuario } from '../../types/Usuario'
 interface AppHeaderProps {
   usuario: Usuario
   titulo: string
+  /**
+   * Nombre del paciente en contexto (rutas por-paciente únicamente). Única
+   * fuente de este dato en pantalla (design `sdd/paciente-overview`, obs #65:
+   * "Single patient-name display") — reemplaza los usos duplicados del
+   * label de contexto que antes vivía en cada página por-paciente.
+   */
+  nombrePaciente?: string
+  /** `true` mientras `usePaciente` resuelve, solo cuando hay paciente en contexto. */
+  pacienteCargando?: boolean
   drawerAbierto: boolean
   onAbrirDrawer: () => void
   onLogout: () => void
@@ -32,18 +41,22 @@ function iniciales(nombre: string): string {
 }
 
 /**
- * Header de la Zona A: trigger del drawer móvil, título de sección
- * (`tituloDeSeccion`), y menú de usuario con logout.
+ * Header de la Zona A: trigger del drawer móvil, título de sección (route
+ * `handle` vía `useMatches`, ver `DashboardLayout`) + nombre del paciente en
+ * contexto, y menú de usuario con logout.
  */
 export function AppHeader({
   usuario,
   titulo,
+  nombrePaciente,
+  pacienteCargando,
   drawerAbierto,
   onAbrirDrawer,
   onLogout,
   disparadorRef,
 }: AppHeaderProps) {
   const rolLabel = usuario.rol === 'TERAPEUTA' ? 'Terapeuta' : 'Familiar'
+  const mostrarPaciente = pacienteCargando || nombrePaciente !== undefined
 
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur md:px-6">
@@ -60,7 +73,14 @@ export function AppHeader({
         >
           <Menu aria-hidden="true" />
         </Button>
-        <h1 className="truncate text-lg font-semibold tracking-tight">{titulo}</h1>
+        <div className="flex min-w-0 flex-col justify-center">
+          <h1 className="truncate text-lg font-semibold tracking-tight">{titulo}</h1>
+          {mostrarPaciente && (
+            <span className="truncate text-xs text-muted-foreground">
+              {pacienteCargando ? 'Cargando paciente…' : nombrePaciente}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">
