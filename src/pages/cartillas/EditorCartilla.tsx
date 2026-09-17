@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { FolderPlus, Loader2, Plus, ShieldAlert } from 'lucide-react'
+import { FolderPlus, Loader2, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useParams } from 'react-router-dom'
@@ -14,6 +14,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { ordenarPorOrden } from '../../lib/cartilla'
 import { formatError } from '../../lib/utils'
 import type { CartillaDetalle } from '../../types'
+import { NoticeSoloLectura } from './accesoCartilla'
 import { FormCategoriaInline } from './FormCategoriaInline'
 import { SeccionCategoria } from './seccionCategoria'
 import {
@@ -112,39 +113,6 @@ function FormCabeceraCartilla({
 }
 
 /* ------------------------------ Página ------------------------------ */
-
-/** Notice de solo lectura: se muestra cuando el usuario no es el creador. */
-function NoticeSoloLectura({
-  volverARevisión,
-  volverAPaciente,
-}: {
-  volverARevisión: string
-  volverAPaciente: string
-}) {
-  return (
-    <Card className="py-12 shadow-sm">
-      <CardContent className="flex flex-col items-center gap-4 text-center">
-        <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <ShieldAlert className="size-5" aria-hidden="true" />
-        </span>
-        <div>
-          <p className="text-sm font-medium text-foreground">Solo el creador puede editar esta cartilla</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Podés verla en modo revisión o abrirla en modo uso con el chico.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link to={volverARevisión}>Ver cartilla</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to={volverAPaciente}>Volver al paciente</Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
 
 export function EditorCartilla() {
   const { pacienteId, idCartilla } = useParams<{ pacienteId: string; idCartilla: string }>()

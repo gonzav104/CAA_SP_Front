@@ -43,3 +43,17 @@ export function ordenarPorOrden<T extends { orden?: number }>(items: T[]): T[] {
 export function ordenarPorOrdenVisual<T extends { ordenVisual?: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => (a.ordenVisual ?? 0) - (b.ordenVisual ?? 0))
 }
+
+/**
+ * Predicado puro de posesión (change cartillas-revival, Fase E1, obs #85
+ * Decisión 5): única fuente de verdad de la comparación `usuario.id ===
+ * cartilla.creadorId`. Usado directamente en `ListaCartillas.tsx` (DTO de
+ * listado, sin fetch por card) y como base de `usePosesionCartilla` (deriva
+ * sobre el detalle). `usuario` `null`/`undefined` → false (sin sesión).
+ */
+export function esCreadorDe(
+  usuario: { id: string } | null | undefined,
+  cartilla: { creadorId: string },
+): boolean {
+  return usuario?.id === cartilla.creadorId
+}
