@@ -29,16 +29,19 @@ import {
  *   LUGAR dentro de este mismo `<form>` (obs #85, Decisión 1) — ya no un
  *   Radix `Dialog` en Portal. `SeleccionPictograma` mantiene sus props
  *   públicos sin cambios (`abierto`, `onAbiertoChange`, `pacienteId`,
- *   `valor`, `onConfirmar`). Bundle de seguridad atómico de este commit
- *   (obs #85/#88 — el arreglo de los defectos que crea el cambio de
- *   contenedor aterriza en el MISMO commit que el cambio):
- *     - `disparadorRef` en el botón trigger (target de foco futuro —
- *       restaurar el foco es hardening de un commit posterior de esta PR).
+ *   `valor`, `onConfirmar`); todo el manejo de foco/teclado que el punto de
+ *   montaje ya no recibe gratis de Radix vive acá:
+ *     - `disparadorRef` en el botón trigger: cada cierre del panel (aplicar,
+ *       materializar-éxito o cancelar) pasa por `cerrarSelector`, que
+ *       restaura el foco ahí.
  *     - `aria-expanded`/`aria-controls` en el trigger, apuntando al `id`
  *       del contenedor de montaje del panel.
  *     - submit lock: mientras el panel está abierto, el botón de submit
  *       queda `disabled` con `aria-describedby` explicando el motivo (un
  *       `disabled` desnudo no es accesible por defecto — obs #80).
+ *     - región `aria-live="polite"` propia (montada SIEMPRE, fuera del
+ *       montaje condicional del panel — una región no puede anunciar su
+ *       propio montaje) que anuncia el resultado de cada cierre.
  * - X hermano absoluto quita el pictograma (limpiarPictograma).
  * - Submit con toItemInput: preserva RI-18 (selector dual mutuamente excluyente
  *   validado por itemSchema en schemas.ts, intacto).
@@ -68,10 +71,16 @@ export function FormItemInline({
   const pictogramasCustomQuery = usePictogramasCustom(pacienteId)
 
   const [selectorAbierto, setSelectorAbierto] = useState(false)
-  // Target de foco futuro (obs #85, Decisión 2): el trigger sigue montado
-  // (Decisión 1), así que restaurar el foco ahí es posible — la llamada a
-  // `.focus()` en sí es hardening de un commit posterior de esta PR.
+  // Mensaje de la región `aria-live` propia (obs #85, Decisión 2 — "belt and
+  // braces" además del movimiento de foco): se fija en cada cierre del panel.
+  const [mensajeSelector, setMensajeSelector] = useState('')
+  // Restaurar foco al trigger (Decisión 2): Radix Dialog lo daba gratis; acá
+  // es hand-written porque el trigger sigue montado (Decisión 1).
   const disparadorRef = useRef<HTMLButtonElement>(null)
+  // Guarda el mensaje de éxito calculado por `aplicarSeleccion` para que
+  // `cerrarSelector` (llamado justo después, vía `onAbiertoChange`) sepa que
+  // el cierre fue por confirmar y no por cancelar.
+  const mensajeConfirmadoRef = useRef<string | null>(null)
   const idMotivoBloqueo = useId()
   const idPanelSelector = useId()
 
@@ -102,10 +111,37 @@ export function FormItemInline({
     return {}
   })()
 
-  /** Aplica la elección del selector respetando la exclusión mutua (RI-18). */
+  /**
+   * Aplica la elección del selector respetando la exclusión mutua (RI-18).
+   * Además arma el mensaje de éxito para la región `aria-live` propia: se
+   * guarda en un ref porque `onConfirmar` corre ANTES que `onAbiertoChange`
+   * en `SeleccionPictograma.confirmar()`, en el mismo tick síncrono.
+   */
   const aplicarSeleccion = ({ globalId, customId }: PictogramaElegido) => {
     form.setValue('recursoGlobalId', globalId, { shouldValidate: true })
     form.setValue('recursoCustomId', customId, { shouldValidate: true })
+    const etiqueta = globalId
+      ? pictogramasQuery.data?.find((p) => p.id === globalId)?.etiqueta
+      : pictogramasCustomQuery.data?.find((p) => p.id === customId)?.etiqueta
+    mensajeConfirmadoRef.current = etiqueta
+      ? `Pictograma «${etiqueta}» seleccionado`
+      : 'Pictograma seleccionado'
+  }
+
+  /**
+   * Único punto de cierre de `SeleccionPictograma` (Confirmar y Cancelar
+   * cierran vía `onAbiertoChange`, sin overlay/X — obs #85, Decisión 2):
+   * restaura el foco al trigger (Radix Dialog lo daba gratis; el trigger
+   * sigue montado ahora, así que es hand-written) y fija el mensaje de la
+   * región `aria-live` propia — "seleccionado" si `aplicarSeleccion` corrió
+   * en este mismo cierre, "cancelada" si no.
+   */
+  const cerrarSelector = (siguienteAbierto: boolean) => {
+    setSelectorAbierto(siguienteAbierto)
+    if (siguienteAbierto) return
+    setMensajeSelector(mensajeConfirmadoRef.current ?? 'Selección cancelada')
+    mensajeConfirmadoRef.current = null
+    disparadorRef.current?.focus()
   }
 
   /** El X de quitar solo aparece si hay un pictograma elegido (si no, placeholder). */
@@ -245,6 +281,14 @@ export function FormItemInline({
         </p>
       )}
 
+      {/* Región `aria-live` propia del panel (obs #85, Decisión 2 — "belt and
+          braces" además del movimiento de foco): montada SIEMPRE, fuera del
+          montaje condicional de abajo, porque una región no puede anunciar
+          su propio montaje. */}
+      <div aria-live="polite" className="sr-only">
+        {mensajeSelector}
+      </div>
+
       {/* Montaje condicional: el selector arranca con estado limpio en cada apertura
           (tab ARASAAC, término de búsqueda vacío) sin reset por efecto. El
           `id` del contenedor es el target de `aria-controls` del trigger. */}
@@ -252,7 +296,7 @@ export function FormItemInline({
         <div id={idPanelSelector}>
           <SeleccionPictograma
             abierto
-            onAbiertoChange={setSelectorAbierto}
+            onAbiertoChange={cerrarSelector}
             pacienteId={pacienteId}
             valor={{ recursoGlobalId, recursoCustomId }}
             onConfirmar={aplicarSeleccion}

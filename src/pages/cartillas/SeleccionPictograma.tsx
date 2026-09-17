@@ -1,5 +1,5 @@
 import { Check, Loader2, Pencil, Search, SearchX, TriangleAlert } from 'lucide-react'
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ThumbPictograma } from '../../components/ThumbPictograma'
 import { Button } from '../../components/ui/button'
 import { Field, FieldLabel } from '../../components/ui/field'
@@ -219,6 +219,10 @@ export function SeleccionPictograma({
   const idTitulo = useId()
   const idDescripcion = useId()
 
+  useEffect(() => {
+    inputArasaacRef.current?.focus()
+  }, [])
+
   const buscarArasaac = useBuscarArasaac(terminoDebounced)
 
   const pictogramas: Pictograma[] = pictogramasQuery.data ?? []
@@ -290,16 +294,23 @@ export function SeleccionPictograma({
   }
 
   /**
-   * Guard de teclado en la raíz del panel (obs #85, Decisión 1, defecto
-   * nuevo #1): Enter sobre un `<input>` del panel NO debe enviar el `<form>`
-   * del padre (el panel ahora vive dentro de ese `<form>`, defecto nuevo del
-   * punto de montaje) → se bloquea con `preventDefault`. El manejo de Esc
-   * (Decisión 2, tabla de foco) llega en un commit posterior de la misma PR
-   * — es hardening, no parte del bundle de seguridad atómico de este commit.
+   * Guard de teclado en la raíz del panel (obs #85, Decisión 1/2):
+   *  - Enter sobre un `<input>` del panel NO debe enviar el `<form>` del
+   *    padre (el panel ahora vive dentro de ese `<form>`, defecto nuevo del
+   *    punto de montaje) → se bloquea con `preventDefault`.
+   *  - Esc cancela (comportamiento de Dialog conservado, acotado al panel vía
+   *    `stopPropagation`), pero es un no-op mientras hay un POST de
+   *    materialize en vuelo (el overlay «Guardando…» ya lo explica).
    */
   const onKeyDownPanel = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {
       event.preventDefault()
+      return
+    }
+    if (event.key === 'Escape') {
+      event.stopPropagation()
+      if (materializando) return
+      onAbiertoChange(false)
     }
   }
 
