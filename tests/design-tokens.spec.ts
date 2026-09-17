@@ -406,3 +406,152 @@ test.describe('Design tokens — cartillas cluster: browse surfaces (vacío, TER
     await expectColorPrimarioEnAmbosTemas(page, cta, 'background-color')
   })
 })
+
+/**
+ * cartillas-revival Phase C (obs #87, tasks 3.1/3.5) — extiende la suite a
+ * `EditorCartilla`, `FormCategoriaInline`, `dialogos.tsx` (`DialogoNuevaCartilla`)
+ * y `seccionCategoria.tsx`: ninguna clase `blue-(600|700)` ni `accent-blue-600`
+ * sobrevive la migración a `--primary` (incluye la propiedad CSS `accent-color`
+ * del checkbox «esPrincipal»), y el anillo de foco de los swatches de color de
+ * `FormCategoriaInline` adopta la convención del shell (misma convención que
+ * Phase A, `focus-visible:ring-[3px] focus-visible:ring-sidebar-ring/50`).
+ */
+test.describe('Design tokens — cartillas cluster: editor y forms inline (TERAPEUTA)', () => {
+  test.use({ storageState: TERAPEUTA_STORAGE_STATE })
+
+  let pacienteId: string
+  let cartillaId: string
+
+  test.beforeAll(async () => {
+    const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
+
+    const pacienteResp = await api.post(`${API_BASE}/api/pacientes`, {
+      data: { nombre: 'E2E', apellido: `EditorTokens-${Date.now()}`, fechaNacimiento: '2015-01-01' },
+    })
+    const paciente = (await pacienteResp.json()) as { id: string }
+    pacienteId = paciente.id
+
+    const cartillaResp = await api.post(`${API_BASE}/api/pacientes/${pacienteId}/cartillas`, {
+      data: { nombre: `[E2E EditorTokens] ${Date.now()}` },
+    })
+    const cartilla = (await cartillaResp.json()) as { id: string }
+    cartillaId = cartilla.id
+
+    const categoriaResp = await api.post(
+      `${API_BASE}/api/pacientes/${pacienteId}/cartillas/${cartillaId}/categorias`,
+      { data: { nombre: 'Comidas', colorHex: '#4287f5', orden: 0 } },
+    )
+    const categoria = (await categoriaResp.json()) as { id: string }
+
+    const pictogramasResp = await api.get(`${API_BASE}/api/pictogramas-globales`)
+    const pictogramas = (await pictogramasResp.json()) as Array<{ id: string }>
+
+    await api.post(
+      `${API_BASE}/api/pacientes/${pacienteId}/cartillas/${cartillaId}/categorias/${categoria.id}/items`,
+      { data: { textoHablado: 'Agua', ordenVisual: 0, recursoGlobalId: pictogramas[0].id } },
+    )
+
+    await api.dispose()
+  })
+
+  test.afterAll(async () => {
+    if (!pacienteId) return
+    const api = await playwrightRequest.newContext({ storageState: TERAPEUTA_STORAGE_STATE })
+    if (cartillaId) {
+      await api.delete(`${API_BASE}/api/pacientes/${pacienteId}/cartillas/${cartillaId}`)
+    }
+    await api.delete(`${API_BASE}/api/pacientes/${pacienteId}`)
+    await api.dispose()
+  })
+
+  test('EditorCartilla: checkbox "esPrincipal" migra su accent-color a --primary sin accent-blue-600', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}/editar`)
+    const checkbox = page.locator('#esPrincipal')
+    await expectSinClasesAzulLiteral(checkbox)
+    await expectColorPrimarioEnAmbosTemas(page, checkbox, 'accent-color')
+  })
+
+  test('EditorCartilla: CTA "Guardar" (cabecera) migra a --primary sin blue-600/700', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}/editar`)
+    const cta = page.getByRole('button', { name: 'Guardar' })
+    await expectSinClasesAzulLiteral(cta)
+    await expectColorPrimarioEnAmbosTemas(page, cta, 'background-color')
+  })
+
+  test('EditorCartilla: CTA "Agregar categoría" migra a --primary sin blue-600/700', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}/editar`)
+    const cta = page.getByRole('button', { name: 'Agregar categoría' })
+    await expectSinClasesAzulLiteral(cta)
+    await expectColorPrimarioEnAmbosTemas(page, cta, 'background-color')
+  })
+
+  test('FormCategoriaInline: swatch de color adopta la convención de anillo del shell', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}/editar`)
+    await page.getByRole('button', { name: 'Agregar categoría' }).click()
+    const swatch = page.getByRole('radio', { name: 'Amarillo' })
+    await expect(swatch).toHaveClass(
+      /focus-visible:ring-\[3px\] focus-visible:ring-sidebar-ring\/50/,
+    )
+    await expect(swatch).not.toHaveClass(/focus-visible:ring-2\b/)
+  })
+
+  test('FormCategoriaInline: CTA "Crear categoría" migra a --primary sin blue-600/700', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}/editar`)
+    await page.getByRole('button', { name: 'Agregar categoría' }).click()
+    const cta = page.getByRole('button', { name: 'Crear categoría' })
+    await expectSinClasesAzulLiteral(cta)
+    await expectColorPrimarioEnAmbosTemas(page, cta, 'background-color')
+  })
+
+  test('dialogos: checkbox "esPrincipal" de DialogoNuevaCartilla migra su accent-color a --primary sin accent-blue-600', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas`)
+    await page.getByRole('button', { name: 'Nueva cartilla' }).click()
+    const checkbox = page.locator('#esPrincipal')
+    await expectSinClasesAzulLiteral(checkbox)
+    await expectColorPrimarioEnAmbosTemas(page, checkbox, 'accent-color')
+  })
+
+  test('dialogos: CTA "Crear cartilla" de DialogoNuevaCartilla migra a --primary sin blue-600/700', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas`)
+    await page.getByRole('button', { name: 'Nueva cartilla' }).click()
+    const cta = page.getByRole('button', { name: 'Crear cartilla' })
+    await expectSinClasesAzulLiteral(cta)
+    await expectColorPrimarioEnAmbosTemas(page, cta, 'background-color')
+  })
+
+  test('seccionCategoria: los botones de ícono de un item miden al menos 24x24 CSS px', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}/editar`)
+    const editarItem = page.getByRole('button', { name: 'Editar item Agua' })
+    const eliminarItem = page.getByRole('button', { name: 'Eliminar item Agua' })
+    for (const boton of [editarItem, eliminarItem]) {
+      const caja = await boton.boundingBox()
+      expect(caja).not.toBeNull()
+      expect(caja!.width).toBeGreaterThanOrEqual(24)
+      expect(caja!.height).toBeGreaterThanOrEqual(24)
+    }
+  })
+
+  test('seccionCategoria: los botones de ícono de un item usan el anillo de foco por defecto (sin ring-2 ring-ring obsoleto)', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}/editar`)
+    const editarItem = page.getByRole('button', { name: 'Editar item Agua' })
+    await expect(editarItem).not.toHaveClass(/focus-visible:ring-2\b/)
+  })
+})
