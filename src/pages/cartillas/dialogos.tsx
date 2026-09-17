@@ -90,7 +90,7 @@ export function DialogoNuevaCartilla({
                     type="checkbox"
                     checked={field.value === true}
                     onChange={(event) => field.onChange(event.target.checked)}
-                    className="size-4 rounded border-border accent-blue-600"
+                    className="size-4 rounded border-border accent-primary"
                   />
                   Marcar como cartilla principal
                 </label>
@@ -106,7 +106,7 @@ export function DialogoNuevaCartilla({
             <Button
               type="submit"
               disabled={submitting}
-              className="bg-blue-600 text-white hover:bg-blue-700"
+              className="bg-primary text-primary-foreground hover:bg-primary/80"
             >
               {submitting && <Loader2 className="animate-spin" aria-hidden="true" />}
               Crear cartilla

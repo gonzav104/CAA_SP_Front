@@ -208,7 +208,7 @@ export function FormItemInline({
         <Button
           type="submit"
           disabled={submitting}
-          className="bg-blue-600 text-white hover:bg-blue-700"
+          className="bg-primary text-primary-foreground hover:bg-primary/80"
         >
           {submitting && <Loader2 className="animate-spin" aria-hidden="true" />}
           {item ? 'Guardar item' : 'Agregar item'}
