@@ -9,12 +9,11 @@ import { Card, CardContent } from '../../components/ui/card'
 import { CardVacio, DetalleSkeleton, ErrorCarga } from '../../components/estados'
 import { Field, FieldError, FieldLabel } from '../../components/ui/field'
 import { Input } from '../../components/ui/input'
-import { useActualizarCartilla, useCartilla } from '../../hooks/cartillas'
-import { useAuth } from '../../hooks/useAuth'
+import { useActualizarCartilla } from '../../hooks/cartillas'
+import { usePosesionCartilla } from '../../hooks/usePosesionCartilla'
 import { ordenarPorOrden } from '../../lib/cartilla'
-import { formatError } from '../../lib/utils'
 import type { CartillaDetalle } from '../../types'
-import { NoticeSoloLectura } from './accesoCartilla'
+import { NoticeNoEncontrada, NoticeSoloLectura } from './accesoCartilla'
 import { FormCategoriaInline } from './FormCategoriaInline'
 import { SeccionCategoria } from './seccionCategoria'
 import {
@@ -119,8 +118,7 @@ export function EditorCartilla() {
   const pid = pacienteId
   const cid = idCartilla
   const idsValidos = pid !== undefined && pid.trim() !== '' && cid !== undefined && cid.trim() !== ''
-  const { usuario } = useAuth()
-  const cartillaQuery = useCartilla(idsValidos ? pid : undefined, idsValidos ? cid : undefined)
+  const acceso = usePosesionCartilla(idsValidos ? pid : undefined, idsValidos ? cid : undefined)
   const actualizarCartilla = useActualizarCartilla()
   const [formularioNuevaCategoria, setFormularioNuevaCategoria] = useState(false)
   // Categoría recién creada cuyo form de item queremos ver abierto (encadenado).
@@ -130,34 +128,22 @@ export function EditorCartilla() {
     return <ErrorCarga mensaje="Identificador de cartilla inválido." volverA="/pacientes" />
   }
 
-  if (cartillaQuery.isPending) {
+  if (acceso.estado === 'cargando') {
     return <DetalleSkeleton />
   }
 
-  if (cartillaQuery.isError) {
-    return (
-      <ErrorCarga
-        mensaje={formatError(cartillaQuery.error)}
-        onReintentar={() => void cartillaQuery.refetch()}
-        volverA={`/pacientes/${pid}/cartillas`}
-      />
-    )
+  if (acceso.estado === 'error') {
+    return <ErrorCarga mensaje={acceso.mensaje} volverA={`/pacientes/${pid}/cartillas`} />
   }
 
-  const cartilla = cartillaQuery.data
-  if (!cartilla) {
-    return (
-      <ErrorCarga
-        mensaje="No se encontró la cartilla."
-        volverA={`/pacientes/${pid}/cartillas`}
-      />
-    )
+  if (acceso.estado === 'no-encontrada') {
+    return <NoticeNoEncontrada volverACartillas={`/pacientes/${pid}/cartillas`} />
   }
 
-  const esCreador = usuario?.id === cartilla.creadorId
-
-  // GATE: un familiar (o terapeuta ajeno) nunca llega al editor.
-  if (!esCreador) {
+  // GATE INNEGOCIABLE: un familiar (o terapeuta ajeno) nunca llega al editor.
+  // Hard early-return ANTES de que el JSX del formulario de mutación exista —
+  // la fuente de verdad se movió a usePosesionCartilla, la forma no cambió.
+  if (acceso.estado === 'ajena') {
     return (
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <NoticeSoloLectura
@@ -168,6 +154,7 @@ export function EditorCartilla() {
     )
   }
 
+  const cartilla = acceso.cartilla
   const categorias = ordenarPorOrden(cartilla.categorias ?? [])
 
   const guardarCabecera = async (values: CartillaValues) => {
