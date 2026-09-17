@@ -1,5 +1,6 @@
 import { LayoutGrid, Pencil, Play, Star } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
+import { EncabezadoSeccion } from '../../components/EncabezadoSeccion'
 import { PictogramaTile } from '../../components/pictogramas/PictogramaTile'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
@@ -61,32 +62,33 @@ export function CartillaView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-2xl font-semibold tracking-tight">{cartilla.nombre}</h2>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {cartilla.esPrincipal && (
-              <Badge variant="outline">
-                <Star className="size-3" aria-hidden="true" />
-                Principal
-              </Badge>
-            )}
+      <EncabezadoSeccion
+        titulo={{ texto: cartilla.nombre, nivel: 2 }}
+        acciones={
+          esCreador && (
+            <Button asChild>
+              <Link to={`/pacientes/${pid}/cartillas/${cid}/editar`}>
+                <Pencil aria-hidden="true" />
+                Editar
+              </Link>
+            </Button>
+          )
+        }
+      >
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {cartilla.esPrincipal && (
             <Badge variant="outline">
-              <LayoutGrid className="size-3" aria-hidden="true" />
-              {cartilla.categorias.length}{' '}
-              {cartilla.categorias.length === 1 ? 'categoría' : 'categorías'}
+              <Star className="size-3" aria-hidden="true" />
+              Principal
             </Badge>
-          </div>
+          )}
+          <Badge variant="outline">
+            <LayoutGrid className="size-3" aria-hidden="true" />
+            {cartilla.categorias.length}{' '}
+            {cartilla.categorias.length === 1 ? 'categoría' : 'categorías'}
+          </Badge>
         </div>
-        {esCreador && (
-          <Button asChild>
-            <Link to={`/pacientes/${pid}/cartillas/${cid}/editar`}>
-              <Pencil aria-hidden="true" />
-              Editar
-            </Link>
-          </Button>
-        )}
-      </div>
+      </EncabezadoSeccion>
 
       {categorias.length === 0 ? (
         <CardVacio

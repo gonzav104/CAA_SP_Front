@@ -35,7 +35,8 @@ test.describe('Guard de rol en /pacientes/:pacienteId/pictogramas', () => {
 
     test('acceso a la ruta renderiza la página normalmente', async ({ page }) => {
       await page.goto(`${BASE}/pacientes/${PACIENTE_ID_TERAPEUTA}/pictogramas`)
-      await expect(page.getByRole('heading', { name: 'Pictogramas', level: 2 })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Pictogramas', level: 1 })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Pictogramas' })).toHaveCount(1)
     })
   })
 })

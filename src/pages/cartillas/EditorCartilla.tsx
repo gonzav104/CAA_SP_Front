@@ -3,6 +3,7 @@ import { FolderPlus, Loader2, Plus, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Link, useParams } from 'react-router-dom'
+import { EncabezadoSeccion } from '../../components/EncabezadoSeccion'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent } from '../../components/ui/card'
 import { CardVacio, DetalleSkeleton, ErrorCarga } from '../../components/estados'
@@ -215,17 +216,15 @@ export function EditorCartilla() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Editor de cartilla</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Modificá la estructura de «{cartilla.nombre}».
-          </p>
-        </div>
-        <Button asChild variant="outline">
-          <Link to={`/pacientes/${pid}/cartillas/${cid}`}>Ver revisión</Link>
-        </Button>
-      </div>
+      <EncabezadoSeccion
+        titulo={{ texto: 'Editor de cartilla', nivel: 2 }}
+        descripcion={`Modificá la estructura de «${cartilla.nombre}».`}
+        acciones={
+          <Button asChild variant="outline">
+            <Link to={`/pacientes/${pid}/cartillas/${cid}`}>Ver revisión</Link>
+          </Button>
+        }
+      />
 
       <Card className="shadow-sm">
         <CardContent>
