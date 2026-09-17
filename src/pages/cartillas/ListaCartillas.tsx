@@ -1,6 +1,7 @@
 import { LayoutGrid, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { EncabezadoSeccion } from '../../components/EncabezadoSeccion'
 import { CardVacio, ErrorCarga } from '../../components/estados'
 import {
   AlertDialog,
@@ -175,30 +176,27 @@ export function ListaCartillas() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Cartillas</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Cartillas de comunicación del paciente.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline">
-            {usuario?.rol === 'FAMILIAR' ? (
-              <Link to="/familiar">Volver a mi familia</Link>
-            ) : (
-              <Link to="/pacientes">Volver a pacientes</Link>
-            )}
-          </Button>
-          <Button
-            className="bg-primary text-primary-foreground hover:bg-primary/80"
-            onClick={() => setDialogoNueva(true)}
-          >
-            <Plus aria-hidden="true" />
-            Nueva cartilla
-          </Button>
-        </div>
-      </div>
+      <EncabezadoSeccion
+        descripcion="Cartillas de comunicación del paciente."
+        acciones={
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              {usuario?.rol === 'FAMILIAR' ? (
+                <Link to="/familiar">Volver a mi familia</Link>
+              ) : (
+                <Link to="/pacientes">Volver a pacientes</Link>
+              )}
+            </Button>
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/80"
+              onClick={() => setDialogoNueva(true)}
+            >
+              <Plus aria-hidden="true" />
+              Nueva cartilla
+            </Button>
+          </div>
+        }
+      />
 
       {cartillasQuery.isPending && <ListadoSkeleton />}
 
