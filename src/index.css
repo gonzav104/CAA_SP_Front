@@ -36,6 +36,36 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /**
+   * Zona B token family (sdd/modo-uso-zona-b/design, D1) — chrome for the
+   * child-facing `ModoUso`/`BarraFrase`/`PictogramaTile(uso)` surfaces.
+   * Role-named, never hue-named, so an ad-hoc `amber-*`/`slate-*` utility
+   * cannot silently reappear by inference.
+   *
+   * DELIBERATELY LIGHT-ONLY: declared here in `:root` only, with NO `.dark`
+   * entries. Zona B never inverts to a dark theme — this is intentional,
+   * not an oversight. A future contributor "completing" this family with
+   * `.dark` overrides would be undoing a reviewed decision.
+   *
+   * Every value below is fully opaque (no `/NN` alpha modifier is ever
+   * applied to a `zona-b-*` utility): alpha compositing makes a measured
+   * contrast ratio depend on whatever is painted underneath, which would
+   * make the 4.5:1 (WCAG SC 1.4.3) and 3:1 (SC 1.4.11) obligations
+   * unverifiable by `toHaveCSS`. Exact hex values were chosen and
+   * contrast-measured against the WCAG relative-luminance formula at
+   * implementation time (see tests/zona-b-tokens.spec.ts), not eyeballed.
+   */
+  --zona-b-surface: #fffbeb;
+  --zona-b-surface-raised: #ffffff;
+  --zona-b-border: #92400e;
+  --zona-b-border-soft: #b45309;
+  --zona-b-nav: #fdecc8;
+  --zona-b-accent: #f59e0b;
+  --zona-b-accent-foreground: #1e293b;
+  --zona-b-foreground: #1e293b;
+  --zona-b-foreground-muted: #475569;
+  --zona-b-foreground-subtle: #5b6b82;
 }
 
 .dark {
@@ -108,6 +138,18 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* Zona B token family (see :root above for values and rationale). */
+  --color-zona-b-surface: var(--zona-b-surface);
+  --color-zona-b-surface-raised: var(--zona-b-surface-raised);
+  --color-zona-b-border: var(--zona-b-border);
+  --color-zona-b-border-soft: var(--zona-b-border-soft);
+  --color-zona-b-nav: var(--zona-b-nav);
+  --color-zona-b-accent: var(--zona-b-accent);
+  --color-zona-b-accent-foreground: var(--zona-b-accent-foreground);
+  --color-zona-b-foreground: var(--zona-b-foreground);
+  --color-zona-b-foreground-muted: var(--zona-b-foreground-muted);
+  --color-zona-b-foreground-subtle: var(--zona-b-foreground-subtle);
 }
 
 .safe-area-t {

@@ -51,19 +51,27 @@ export type PictogramaTileProps = Estatico | Interactivo
  *   w-full` para el nuevo layout de grid-cell bare.
  * - `uso`: `ModoUso.tsx:249`, sin cambios.
  */
-const CLASE_RAIZ_PREVIEW =
+export const CLASE_RAIZ_PREVIEW =
   'flex h-full w-full flex-col items-center gap-2 rounded-lg border border-border px-3 py-3 text-center'
+/**
+ * `uso` chrome migrated to `zona-b-*` tokens (sdd/modo-uso-zona-b/design,
+ * D2): the ad-hoc white/border/text utilities the tile used before this
+ * migration are replaced 1:1 by their opaque token equivalents. `preview`
+ * above is untouched.
+ */
 const CLASE_RAIZ_USO =
-  'flex min-h-[120px] min-w-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-white/70 bg-white p-2 text-slate-800 shadow-sm transition-transform hover:bg-white hover:shadow-md active:scale-95'
+  'flex min-h-[120px] min-w-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-zona-b-border-soft bg-zona-b-surface-raised p-2 text-zona-b-foreground shadow-sm transition-transform hover:bg-zona-b-surface-raised hover:shadow-md active:scale-95'
 
 /** Clases de la imagen, copiadas de `CartillaView.tsx:132` / `ModoUso.tsx:254`. */
 const CLASE_IMAGEN_PREVIEW = 'h-20 w-20'
 const CLASE_IMAGEN_USO = 'h-14 w-14 shrink-0 sm:h-16 sm:w-16'
 
 /** Clases de la etiqueta, copiadas de `CartillaView.tsx:134` / `ModoUso.tsx:256`. */
-const CLASE_ETIQUETA_PREVIEW = 'text-xs font-medium text-foreground'
+export const CLASE_ETIQUETA_PREVIEW = 'text-xs font-medium text-foreground'
 const CLASE_ETIQUETA_USO =
   'line-clamp-3 min-w-0 break-words text-center text-lg font-bold leading-tight sm:text-xl'
+
+export { CLASE_RAIZ_USO, CLASE_ETIQUETA_USO }
 
 export function PictogramaTile(props: PictogramaTileProps) {
   const { src, etiqueta, variante = 'preview', className } = props
