@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ImagePlus, Loader2, X } from 'lucide-react'
-import { useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { ThumbPictograma } from '../../components/ThumbPictograma'
 import { Button } from '../../components/ui/button'
@@ -22,12 +22,23 @@ import {
 
 /**
  * FormItemInline (AD-6): alta/edición inline de un item SIN modal (regla
- * AGENTS.md: form multi-campo va en el editor, no en Dialog; el ÚNICO Dialog
- * acá es la selección de pictograma, que es un solo campo).
+ * AGENTS.md: form multi-campo va en el editor, no en Dialog).
  *
  * - textoHablado + campo pictograma clickeable (todo el campo es el trigger)
- *   → abre SeleccionPictograma (tabs ARASAAC/Globales/Custom, confirm-first:
- *   el picker aplica al Confirmar y puede materializar ARASAAC).
+ *   → abre `SeleccionPictograma`, ahora un panel NO modal montado EN EL
+ *   LUGAR dentro de este mismo `<form>` (obs #85, Decisión 1) — ya no un
+ *   Radix `Dialog` en Portal. `SeleccionPictograma` mantiene sus props
+ *   públicos sin cambios (`abierto`, `onAbiertoChange`, `pacienteId`,
+ *   `valor`, `onConfirmar`). Bundle de seguridad atómico de este commit
+ *   (obs #85/#88 — el arreglo de los defectos que crea el cambio de
+ *   contenedor aterriza en el MISMO commit que el cambio):
+ *     - `disparadorRef` en el botón trigger (target de foco futuro —
+ *       restaurar el foco es hardening de un commit posterior de esta PR).
+ *     - `aria-expanded`/`aria-controls` en el trigger, apuntando al `id`
+ *       del contenedor de montaje del panel.
+ *     - submit lock: mientras el panel está abierto, el botón de submit
+ *       queda `disabled` con `aria-describedby` explicando el motivo (un
+ *       `disabled` desnudo no es accesible por defecto — obs #80).
  * - X hermano absoluto quita el pictograma (limpiarPictograma).
  * - Submit con toItemInput: preserva RI-18 (selector dual mutuamente excluyente
  *   validado por itemSchema en schemas.ts, intacto).
@@ -57,6 +68,12 @@ export function FormItemInline({
   const pictogramasCustomQuery = usePictogramasCustom(pacienteId)
 
   const [selectorAbierto, setSelectorAbierto] = useState(false)
+  // Target de foco futuro (obs #85, Decisión 2): el trigger sigue montado
+  // (Decisión 1), así que restaurar el foco ahí es posible — la llamada a
+  // `.focus()` en sí es hardening de un commit posterior de esta PR.
+  const disparadorRef = useRef<HTMLButtonElement>(null)
+  const idMotivoBloqueo = useId()
+  const idPanelSelector = useId()
 
   const form = useForm<ItemValues>({
     resolver: zodResolver(itemSchema),
@@ -148,9 +165,12 @@ export function FormItemInline({
         <FieldLabel>Pictograma</FieldLabel>
         <div className="relative">
           <Button
+            ref={disparadorRef}
             type="button"
             variant="outline"
             className="h-auto w-full justify-start gap-3 px-3 py-2 text-left"
+            aria-expanded={selectorAbierto}
+            aria-controls={idPanelSelector}
             onClick={() => setSelectorAbierto(true)}
           >
             <ThumbPictograma
@@ -207,24 +227,37 @@ export function FormItemInline({
         </Button>
         <Button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || selectorAbierto}
+          aria-describedby={selectorAbierto ? idMotivoBloqueo : undefined}
           className="bg-primary text-primary-foreground hover:bg-primary/80"
         >
           {submitting && <Loader2 className="animate-spin" aria-hidden="true" />}
           {item ? 'Guardar item' : 'Agregar item'}
         </Button>
       </div>
+      {/* Submit lock (obs #85, Decisión 1, defecto nuevo #3): mientras el panel
+          está abierto, guardar el item descartaría en silencio una selección
+          pendiente sin confirmar. El motivo es texto VISIBLE (no solo `disabled`
+          desnudo, que no es accesible por defecto) referenciado por el submit. */}
+      {selectorAbierto && (
+        <p id={idMotivoBloqueo} className="text-xs text-muted-foreground">
+          Confirmá o cancelá la selección de pictograma para poder guardar.
+        </p>
+      )}
 
       {/* Montaje condicional: el selector arranca con estado limpio en cada apertura
-          (tab ARASAAC, término de búsqueda vacío) sin reset por efecto. */}
+          (tab ARASAAC, término de búsqueda vacío) sin reset por efecto. El
+          `id` del contenedor es el target de `aria-controls` del trigger. */}
       {selectorAbierto && (
-        <SeleccionPictograma
-          abierto
-          onAbiertoChange={setSelectorAbierto}
-          pacienteId={pacienteId}
-          valor={{ recursoGlobalId, recursoCustomId }}
-          onConfirmar={aplicarSeleccion}
-        />
+        <div id={idPanelSelector}>
+          <SeleccionPictograma
+            abierto
+            onAbiertoChange={setSelectorAbierto}
+            pacienteId={pacienteId}
+            valor={{ recursoGlobalId, recursoCustomId }}
+            onConfirmar={aplicarSeleccion}
+          />
+        </div>
       )}
     </form>
   )
