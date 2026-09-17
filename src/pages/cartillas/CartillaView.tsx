@@ -5,11 +5,10 @@ import { PictogramaTile } from '../../components/pictogramas/PictogramaTile'
 import { Badge } from '../../components/ui/badge'
 import { Button } from '../../components/ui/button'
 import { DetalleSkeleton, ErrorCarga, CardVacio } from '../../components/estados'
-import { useCartilla } from '../../hooks/cartillas'
-import { useAuth } from '../../hooks/useAuth'
+import { usePosesionCartilla } from '../../hooks/usePosesionCartilla'
 import { imagenUrlDeItem, ordenarPorOrden, ordenarPorOrdenVisual } from '../../lib/cartilla'
 import { normalizeColorHex } from '../../lib/color'
-import { formatError } from '../../lib/utils'
+import { NoticeNoEncontrada } from './accesoCartilla'
 
 /**
  * CartillaView (/pacientes/:pacienteId/cartillas/:idCartilla, T8).
@@ -26,38 +25,26 @@ export function CartillaView() {
   const pid = pacienteId
   const cid = idCartilla
   const idsValidos = pid !== undefined && pid.trim() !== '' && cid !== undefined && cid.trim() !== ''
-  const { usuario } = useAuth()
-  const cartillaQuery = useCartilla(idsValidos ? pid : undefined, idsValidos ? cid : undefined)
+  const acceso = usePosesionCartilla(idsValidos ? pid : undefined, idsValidos ? cid : undefined)
 
   if (!idsValidos) {
     return <ErrorCarga mensaje="Identificador de cartilla inválido." volverA="/pacientes" />
   }
 
-  if (cartillaQuery.isPending) {
+  if (acceso.estado === 'cargando') {
     return <DetalleSkeleton />
   }
 
-  if (cartillaQuery.isError) {
-    return (
-      <ErrorCarga
-        mensaje={formatError(cartillaQuery.error)}
-        onReintentar={() => void cartillaQuery.refetch()}
-        volverA={`/pacientes/${pid}/cartillas`}
-      />
-    )
+  if (acceso.estado === 'error') {
+    return <ErrorCarga mensaje={acceso.mensaje} volverA={`/pacientes/${pid}/cartillas`} />
   }
 
-  const cartilla = cartillaQuery.data
-  if (!cartilla) {
-    return (
-      <ErrorCarga
-        mensaje="No se encontró la cartilla."
-        volverA={`/pacientes/${pid}/cartillas`}
-      />
-    )
+  if (acceso.estado === 'no-encontrada') {
+    return <NoticeNoEncontrada volverACartillas={`/pacientes/${pid}/cartillas`} />
   }
 
-  const esCreador = usuario?.id === cartilla.creadorId
+  const cartilla = acceso.cartilla
+  const esCreador = acceso.estado === 'propia'
   const categorias = ordenarPorOrden(cartilla.categorias ?? [])
 
   return (
@@ -65,13 +52,17 @@ export function CartillaView() {
       <EncabezadoSeccion
         titulo={{ texto: cartilla.nombre, nivel: 2 }}
         acciones={
-          esCreador && (
+          esCreador ? (
             <Button asChild>
               <Link to={`/pacientes/${pid}/cartillas/${cid}/editar`}>
                 <Pencil aria-hidden="true" />
                 Editar
               </Link>
             </Button>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Solo el creador puede editar esta cartilla.
+            </p>
           )
         }
       >

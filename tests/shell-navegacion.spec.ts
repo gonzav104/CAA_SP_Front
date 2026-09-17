@@ -79,7 +79,12 @@ test.describe('Shell de navegación — drawer móvil', () => {
     // drawer) y esperamos a que la página asiente antes de abrir el drawer.
     await page.locator('main a[href*="/cartillas"]').first().click()
     await page.waitForURL(/\/pacientes\/.+\/cartillas$/)
-    await page.locator('h2', { hasText: 'Cartillas' }).waitFor()
+    // El shell muestra el título de la ruta en su propio <h1> (AppHeader,
+    // alimentado por handle.titulo); ListaCartillas ya no repite un <h2>
+    // que lo duplique (cartillas-revival, slice B — eliminación del heading
+    // eco). El ancla correcta de "la página de Cartillas terminó de asentar"
+    // es ese <h1> del shell, no un heading propio de la página.
+    await page.locator('h1', { hasText: 'Cartillas' }).waitFor()
 
     const trigger = page.getByRole('button', { name: 'Abrir menú de navegación' })
     await trigger.click()
