@@ -174,11 +174,7 @@ export function NuevaSesion() {
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={crear.isPending}
-                className="bg-blue-600 text-white hover:bg-blue-700"
-              >
+              <Button type="submit" disabled={crear.isPending}>
                 {crear.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
                 Guardar sesión
               </Button>

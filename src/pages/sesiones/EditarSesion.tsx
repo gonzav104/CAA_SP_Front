@@ -183,11 +183,7 @@ export function EditarSesion() {
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={actualizar.isPending}
-                className="bg-blue-600 text-white hover:bg-blue-700"
-              >
+              <Button type="submit" disabled={actualizar.isPending}>
                 {actualizar.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
                 Guardar cambios
               </Button>

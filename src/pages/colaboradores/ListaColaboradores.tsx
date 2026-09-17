@@ -64,7 +64,7 @@ export function ListaColaboradores() {
           </p>
         </div>
         {idValido && (
-          <Button asChild className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button asChild>
             <Link to={`/pacientes/${id}/colaboradores/agregar`}>
               <Plus aria-hidden="true" />
               Agregar colaborador
@@ -89,7 +89,7 @@ export function ListaColaboradores() {
           descripcion="Todavía no se agregaron colaboradores para este paciente."
         >
           {idValido && (
-            <Button asChild className="bg-blue-600 text-white hover:bg-blue-700">
+            <Button asChild>
               <Link to={`/pacientes/${id}/colaboradores/agregar`}>
                 <Plus aria-hidden="true" />
                 Agregar colaborador
@@ -104,7 +104,9 @@ export function ListaColaboradores() {
           {colaboradoresQuery.data.map((colaborador) => (
             <Card key={colaborador.usuarioId} className="shadow-sm">
               <CardContent className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-600/10 text-sm font-semibold text-blue-700">
+                {/* dark: override — mismo motivo y valor que el ghost "Editar"
+                    de ListaSesiones.tsx (obs #102 Requirement 2, WCAG AA). */}
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary dark:text-[oklch(0.65_0.15_264.376)]">
                   {iniciales(colaborador.nombre)}
                 </span>
                 <div className="min-w-0 flex-1">

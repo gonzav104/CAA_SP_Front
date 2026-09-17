@@ -150,11 +150,7 @@ export function AgregarColaborador() {
               >
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={agregar.isPending}
-                className="bg-blue-600 text-white hover:bg-blue-700"
-              >
+              <Button type="submit" disabled={agregar.isPending}>
                 {agregar.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
                 Agregar
               </Button>
