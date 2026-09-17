@@ -25,6 +25,7 @@ import {
 import { Skeleton } from '../../components/ui/skeleton'
 import { useCartillas, useCrearCartilla, useEliminarCartilla } from '../../hooks/cartillas'
 import { useAuth } from '../../hooks/useAuth'
+import { esCreadorDe } from '../../lib/cartilla'
 import { formatearFechaISO } from '../../lib/paciente'
 import { formatError } from '../../lib/utils'
 import type { Cartilla } from '../../types'
@@ -229,7 +230,7 @@ export function ListaCartillas() {
             <CardCartilla
               key={cartilla.id}
               cartilla={cartilla}
-              esCreador={usuario?.id === cartilla.creadorId}
+              esCreador={esCreadorDe(usuario, cartilla)}
               onEliminar={setAEliminar}
             />
           ))}
