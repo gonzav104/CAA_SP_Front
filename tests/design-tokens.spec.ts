@@ -554,4 +554,20 @@ test.describe('Design tokens — cartillas cluster: editor y forms inline (TERAP
     const editarItem = page.getByRole('button', { name: 'Editar item Agua' })
     await expect(editarItem).not.toHaveClass(/focus-visible:ring-2\b/)
   })
+
+  test('FormItemInline: el botón "Quitar pictograma" mide al menos 24x24 CSS px (obs #85, Decisión 2 — el real exposure del panel graduado)', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/pacientes/${pacienteId}/cartillas/${cartillaId}/editar`)
+    // El item "Agua" del fixture ya tiene un recursoGlobalId (ver beforeAll):
+    // abrir su edición monta FormItemInline con `tienePictograma` true, así
+    // que el botón "Quitar pictograma" (FormItemInline.tsx, junto al trigger)
+    // renderiza sin necesitar seleccionar nada en el panel graduado.
+    await page.getByRole('button', { name: 'Editar item Agua' }).click()
+    const quitar = page.getByRole('button', { name: 'Quitar pictograma' })
+    const caja = await quitar.boundingBox()
+    expect(caja).not.toBeNull()
+    expect(caja!.width).toBeGreaterThanOrEqual(24)
+    expect(caja!.height).toBeGreaterThanOrEqual(24)
+  })
 })

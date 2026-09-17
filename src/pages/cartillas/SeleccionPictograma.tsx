@@ -1,15 +1,7 @@
 import { Check, Loader2, Pencil, Search, SearchX, TriangleAlert } from 'lucide-react'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { ThumbPictograma } from '../../components/ThumbPictograma'
 import { Button } from '../../components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '../../components/ui/dialog'
 import { Field, FieldLabel } from '../../components/ui/field'
 import { Input } from '../../components/ui/input'
 import { ScrollArea } from '../../components/ui/scroll-area'
@@ -26,29 +18,58 @@ import { cn } from '../../lib/utils'
 import type { Pictograma, PictogramaCustom } from '../../types'
 
 /**
- * SeleccionPictograma (AD-2/AD-4): Dialog + Tabs para elegir el pictograma de
- * un item del editor. Es la selección de UN campo → permitido por AGENTS.md
- * (los forms multi-campo del editor son inline, no modal).
+ * SeleccionPictograma (obs #85, Decisiones 1-3): panel NO modal para elegir el
+ * pictograma de un item del editor. Se monta EN EL LUGAR dentro del `<form>`
+ * de `FormItemInline` (nunca en un Portal — para un panel no-modal la
+ * posición en el DOM ES el orden de tabulación). El trigger que lo abre
+ * permanece montado; `FormItemInline` restaura el foco ahí en cada cierre.
  *
- * Flujo confirm-first (D1/D2): click en un tile marca una selección PENDIENTE
- * (estado local; el dialog NO se cierra); «Confirmar» aplica + cierra;
- * Esc/cancelar descartan sin aplicar. La materialización ARASAAC se mueve del
- * click del tile al momento de Confirmar.
+ * Lo que Radix `Dialog` daba gratis y este panel repone a mano (tabla
+ * exhaustiva en obs #85, Decisión 2):
+ *  - foco al abrir → efecto de montaje sobre `inputArasaacRef`.
+ *  - Esc cierra → `onKeyDown` en la raíz, no-op mientras materializa.
+ *  - restaurar foco al cerrar → hand-written en el padre (`FormItemInline`),
+ *    vía los props `onAbiertoChange`/`onConfirmar` (sin cambios de forma).
+ *  - nombre/descripción accesibles → `role="group"` + `aria-labelledby` +
+ *    `aria-describedby`, en vez de `DialogTitle`/`DialogDescription`.
  *
- * Tabs:
+ * Lo que Radix `Dialog` daba gratis y este panel DELIBERADAMENTE no repone
+ * (obs #85, Decisión 2 — un panel no-modal no debe simularlos):
+ *  - trap de foco, `aria-modal`, fondo inerte.
+ *  - cierre por click en overlay/X (Cancelar es el único cierre-sin-aplicar).
+ *
+ * Defectos NUEVOS que introduce este punto de montaje (obs #85, Decisión 1,
+ * consecuencias) y que este mismo archivo/`FormItemInline` neutralizan:
+ *  1. Los `<input>` del panel ahora son descendientes del `<form>` del padre
+ *     → Enter los enviaría. Guard: `onKeyDown` bloquea Enter sobre un
+ *     `<input>` con `preventDefault`.
+ *  2. Confirmar sostiene el foco durante el POST de materialize → NO puede
+ *     ser `disabled` (perdería el foco al fondo del documento). Usa
+ *     `aria-disabled`+`aria-busy` y el guard ya existente en `confirmar()`.
+ *  3. Guardar el item con selección pendiente la descartaría en silencio →
+ *     el submit lock vive en `FormItemInline`, no acá.
+ *
+ * Flujo confirm-first (sin cambios): click en un tile marca una selección
+ * PENDIENTE (estado local; el panel NO se cierra); «Confirmar» aplica y
+ * cierra; Esc/Cancelar descartan sin aplicar. La materialización ARASAAC
+ * ocurre al Confirmar, no al click del tile.
+ *
+ * Tabs (comportamiento sin cambios):
  *  1. Buscar en ARASAAC (default): Input + useDebouncedValue 250ms +
- *     useBuscarArasaac (API pública, cliente SIN cookie). Click en un resultado
- *     lo marca pendiente; al Confirmar:
- *       - si su arasaacId YA está en «Globales guardados» → se aplica el mismo
- *         UUID (instante, sin mutation — decidirConfirmacion);
- *       - si no → useMaterializarPictogramaGlobal (POST al backend, idempotente
- *         por arasaac_id unique) → se aplica el UUID nuevo + invalidate.
- *  2. Globales guardados: grilla radiogroup (a11y role=radio + aria-checked,
- *     mismo patrón que DialogoFormItem). Elegir un global limpia el custom.
- *  3. Custom del paciente: grilla radiogroup; elegir un custom limpia el global.
+ *     useBuscarArasaac (API pública, cliente SIN cookie). Click en un
+ *     resultado lo marca pendiente; al Confirmar:
+ *       - si su arasaacId YA está en «Globales guardados» → se aplica el
+ *         mismo UUID (instante, sin mutation — decidirConfirmacion);
+ *       - si no → useMaterializarPictogramaGlobal (POST idempotente por
+ *         arasaac_id unique) → se aplica el UUID nuevo + invalidate.
+ *  2. Globales guardados: grilla radiogroup (role=radio + aria-checked).
+ *     Elegir un global limpia el custom.
+ *  3. Custom del paciente: grilla radiogroup; elegir un custom limpia el
+ *     global.
  *
- * Selección mutuamente excluyente global/custom (RI-18, ya en schemas.ts); el
- * padre (FormItemInline) aplica la elección con form.setValue al confirmar.
+ * Selección mutuamente excluyente global/custom (RI-18, schemas.ts, sin
+ * cambios); el padre (`FormItemInline`) aplica la elección con
+ * `form.setValue` al confirmar.
  */
 
 /** Valor actual del form del padre (para pintar la selección vigente). */
@@ -93,7 +114,7 @@ function TilePictograma({
       onClick={onSeleccionar}
       aria-label={aplicado && !pendiente ? `${etiqueta} — Selección actual` : etiqueta}
       className={cn(
-        'relative flex flex-col items-center gap-1 rounded-lg border p-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60',
+        'relative flex flex-col items-center gap-1 rounded-lg border p-2 outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-sidebar-ring/50 disabled:opacity-60',
         pendiente
           ? 'border-primary bg-primary/5 ring-2 ring-primary'
           : aplicado
@@ -154,7 +175,12 @@ function AvisoTab({ icono, mensaje }: { icono: ReactNode; mensaje: string }) {
 /* ------------------------------ Componente ------------------------------ */
 
 export function SeleccionPictograma({
-  abierto,
+  // `abierto` ya no se lee acá: el padre monta este componente condicional
+  // por apertura (ver comentario "Montaje condicional" en FormItemInline), lo
+  // que reemplaza al `open` que consumía el `Dialog`. Se mantiene en la firma
+  // pública sin cambios de nombre/forma (obs #85 — props frozen del container
+  // swap) para que revertir esta migración, si hiciera falta, sea mecánico.
+  abierto: _abierto,
   onAbiertoChange,
   pacienteId,
   valor,
@@ -165,7 +191,7 @@ export function SeleccionPictograma({
   /** Necesario para la lista de pictogramas custom del paciente (tab 3). */
   pacienteId: string
   valor: SeleccionPictogramaValor
-  /** Se llama SOLO al confirmar (D2) — el click en un tile solo marca pendiente. */
+  /** Se llama SOLO al confirmar — el click en un tile solo marca pendiente. */
   onConfirmar: (pictograma: PictogramaElegido) => void
 }) {
   const pictogramasQuery = usePictogramasGlobales()
@@ -179,16 +205,23 @@ export function SeleccionPictograma({
   const [termino, setTermino] = useState('')
   const terminoDebounced = useDebouncedValue(termino, 250)
   const [materializandoArasaacId, setMaterializandoArasaacId] = useState<number | null>(null)
-  // Selección PENDIENTE (confirm-first, D1): el click en un tile solo la marca;
-  // el dialog NO se cierra hasta «Confirmar». Esc/cancelar descartan (unmount).
+  // Selección PENDIENTE (confirm-first): el click en un tile solo la marca;
+  // el panel NO se cierra hasta «Confirmar». Esc/Cancelar descartan (unmount).
   const [pendiente, setPendiente] = useState<SeleccionPendiente | null>(null)
-  // autoFocus de la búsqueda ARASAAC (tab por defecto). D8: Radix Dialog puede
-  // robar el foco al content → onOpenAutoFocus en DialogContent refuerza.
+  // Foco al abrir (obs #85, Decisión 2): montaje condicional por apertura →
+  // un efecto de montaje equivale a "cada vez que se abre", sin onOpenAutoFocus.
   const inputArasaacRef = useRef<HTMLInputElement>(null)
   // Filtro local del tab «Globales guardados»: solo client-side sobre los
   // pictogramas ya materializados; no toca ARASAAC.
   const [filtroGlobales, setFiltroGlobales] = useState('')
   const filtroGlobalesDebounced = useDebouncedValue(filtroGlobales, 250)
+
+  const idTitulo = useId()
+  const idDescripcion = useId()
+
+  useEffect(() => {
+    inputArasaacRef.current?.focus()
+  }, [])
 
   const buscarArasaac = useBuscarArasaac(terminoDebounced)
 
@@ -206,27 +239,35 @@ export function SeleccionPictograma({
     .map(mapearResultadoArasaac)
     .filter((resultado): resultado is ResultadoArasaac => resultado !== null)
 
-  /** Marcar pendiente: SOLO setState (D1) — el dialog sigue abierto hasta Confirmar. */
+  /** Marcar pendiente: SOLO setState — el panel sigue abierto hasta Confirmar. */
   const marcarPendienteGlobal = (globalId: string) =>
     setPendiente({ tipo: 'global', globalId })
 
-  /** Marcar pendiente: SOLO setState (D1) — el dialog sigue abierto hasta Confirmar. */
+  /** Marcar pendiente: SOLO setState — el panel sigue abierto hasta Confirmar. */
   const marcarPendienteCustom = (customId: string) =>
     setPendiente({ tipo: 'custom', customId })
 
-  /** Marcar pendiente: SOLO setState (D1); la materialización ocurre en confirmar(). */
+  /** Marcar pendiente: SOLO setState; la materialización ocurre en confirmar(). */
   const marcarPendienteArasaac = (resultado: ResultadoArasaac) =>
     setPendiente({ tipo: 'arasaac', resultado })
 
+  const materializando = materializandoArasaacId !== null
+
   /**
-   * Confirmar (D3): decide aplicar-vs-materializar sobre la selección pendiente.
+   * Confirmar: decide aplicar-vs-materializar sobre la selección pendiente.
    * - aplicar (global/custom/ARASAAC ya materializado) → onConfirmar + cerrar.
    * - materializar (ARASAAC nuevo) → POST con overlay; al éxito, onConfirmar
    *   con el UUID nuevo + cerrar; al error, toast del hook y el pendiente
    *   queda INTACTO (reintentar o cancelar).
+   *
+   * Este guard (`if (!pendiente || materializando) return`) es también el
+   * guard de click que reemplaza a `disabled` en el botón Confirmar durante
+   * el POST en vuelo (obs #85, Decisión 2, defecto nuevo #2): el botón queda
+   * `aria-disabled` pero clickeable a nivel DOM, y este guard absorbe el
+   * click sin efecto.
    */
   const confirmar = async () => {
-    if (!pendiente || materializandoArasaacId !== null) return
+    if (!pendiente || materializando) return
     const desicion = decidirConfirmacion(pendiente, pictogramas)
     if (desicion.tipo === 'aplicar') {
       onConfirmar(desicion.elegido)
@@ -240,19 +281,41 @@ export function SeleccionPictograma({
         etiqueta: desicion.etiqueta,
       })
       onConfirmar({ globalId: pictograma.id })
-      // Cierre programático post-materialización: va DIRECTO por la prop (D4) —
-      // el guard de onOpenChange solo bloquea cierres iniciados por el usuario.
+      // Cierre programático post-materialización: va DIRECTO por la prop —
+      // no hay guard de cierre externo que bloquear (el panel no tiene
+      // overlay/X; solo Cancelar, que ya queda `disabled` durante el POST).
       onAbiertoChange(false)
     } catch {
       // El error ya se muestra como toast desde useMaterializarPictogramaGlobal;
-      // el dialog queda abierto y el pendiente intacto (reintentar o cancelar).
+      // el panel queda abierto y el pendiente intacto (reintentar o cancelar).
     } finally {
       setMaterializandoArasaacId(null)
     }
   }
 
+  /**
+   * Guard de teclado en la raíz del panel (obs #85, Decisión 1/2):
+   *  - Enter sobre un `<input>` del panel NO debe enviar el `<form>` del
+   *    padre (el panel ahora vive dentro de ese `<form>`, defecto nuevo del
+   *    punto de montaje) → se bloquea con `preventDefault`.
+   *  - Esc cancela (comportamiento de Dialog conservado, acotado al panel vía
+   *    `stopPropagation`), pero es un no-op mientras hay un POST de
+   *    materialize en vuelo (el overlay «Guardando…» ya lo explica).
+   */
+  const onKeyDownPanel = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Enter' && event.target instanceof HTMLInputElement) {
+      event.preventDefault()
+      return
+    }
+    if (event.key === 'Escape') {
+      event.stopPropagation()
+      if (materializando) return
+      onAbiertoChange(false)
+    }
+  }
+
   const grillaGlobales = (
-    <ScrollArea className="h-96 pr-3">
+    <ScrollArea className="h-[min(60dvh,24rem)] pr-3">
       <div
         role="radiogroup"
         aria-label="Pictogramas globales"
@@ -273,7 +336,7 @@ export function SeleccionPictograma({
   )
 
   const grillaCustoms = (
-    <ScrollArea className="h-96 pr-3">
+    <ScrollArea className="h-[min(60dvh,24rem)] pr-3">
       <div
         role="radiogroup"
         aria-label="Pictogramas del paciente"
@@ -322,7 +385,7 @@ export function SeleccionPictograma({
       )
     }
     return (
-      <ScrollArea className="h-96 pr-3">
+      <ScrollArea className="h-[min(60dvh,24rem)] pr-3">
         <div
           role="radiogroup"
           aria-label="Resultados de ARASAAC"
@@ -345,7 +408,7 @@ export function SeleccionPictograma({
                 pendiente?.tipo === 'arasaac' &&
                 pendiente.resultado.arasaacId === resultado.arasaacId
               }
-              deshabilitado={materializandoArasaacId !== null}
+              deshabilitado={materializando}
               onSeleccionar={() => marcarPendienteArasaac(resultado)}
             />
           ))}
@@ -355,146 +418,136 @@ export function SeleccionPictograma({
   })()
 
   return (
-    <Dialog
-      open={abierto}
-      onOpenChange={(abre) => {
-        // Guard de cierre (D4): durante la materialización se bloquea cerrar por
-        // Esc/X/overlay (evita el bug «cancelé pero se aplicó»). El cierre
-        // programático post-éxito usa onAbiertoChange(false) directo (bypass).
-        if (!abre && materializandoArasaacId !== null) return
-        onAbiertoChange(abre)
-      }}
+    <section
+      role="group"
+      aria-labelledby={idTitulo}
+      aria-describedby={idDescripcion}
+      onKeyDown={onKeyDownPanel}
+      className="flex flex-col gap-4 rounded-lg border border-border bg-background p-4 shadow-sm"
     >
-      <DialogContent
-        className="sm:max-w-2xl"
-        onOpenAutoFocus={(event) => {
-          // D8: Radix Dialog enfoca el content al abrir y pisa el autoFocus del
-          // Input; reforzamos que el foco caiga en la búsqueda ARASAAC.
-          event.preventDefault()
-          inputArasaacRef.current?.focus()
-        }}
-      >
-        <DialogHeader>
-          <DialogTitle>Seleccionar pictograma</DialogTitle>
-          <DialogDescription>
-            Buscá en el catálogo ARASAAC, usá un global guardado o un pictograma del paciente.
-            Si materializás uno de ARASAAC, queda disponible en «Globales guardados».
-          </DialogDescription>
-        </DialogHeader>
+      <div>
+        <h3 id={idTitulo} className="text-base font-semibold">
+          Seleccionar pictograma
+        </h3>
+        <p id={idDescripcion} className="text-sm text-muted-foreground">
+          Buscá en el catálogo ARASAAC, usá un global guardado o un pictograma del paciente.
+          Si materializás uno de ARASAAC, queda disponible en «Globales guardados».
+        </p>
+      </div>
 
-        <Tabs value={tabActivo} onValueChange={setTabActivo} className="flex-col">
-          <TabsList className="w-full">
-            <TabsTrigger value="arasaac">Buscar en ARASAAC</TabsTrigger>
-            <TabsTrigger value="globales">
-              Globales ({pictogramas.length})
-            </TabsTrigger>
-            <TabsTrigger value="custom">Custom del paciente</TabsTrigger>
-          </TabsList>
+      <Tabs value={tabActivo} onValueChange={setTabActivo} className="flex-col">
+        <TabsList className="w-full">
+          <TabsTrigger value="arasaac">Buscar en ARASAAC</TabsTrigger>
+          <TabsTrigger value="globales">
+            Globales ({pictogramas.length})
+          </TabsTrigger>
+          <TabsTrigger value="custom">Custom del paciente</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="globales" className="flex flex-col gap-4 pt-4">
-            {pictogramasQuery.isPending ? (
-              <GrillaSkeleton />
-            ) : pictogramasQuery.isError ? (
-              <AvisoTab
-                icono={<TriangleAlert className="size-5" aria-hidden="true" />}
-                mensaje="No se pudieron cargar los pictogramas globales."
-              />
-            ) : pictogramas.length === 0 ? (
-              <AvisoTab
-                icono={<SearchX className="size-5" aria-hidden="true" />}
-                mensaje="No hay pictogramas globales guardados todavía."
-              />
-            ) : (
-              <>
-                <Field>
-                  <FieldLabel htmlFor="busqueda-globales">Buscar en guardados</FieldLabel>
-                  <Input
-                    id="busqueda-globales"
-                    value={filtroGlobales}
-                    onChange={(event) => setFiltroGlobales(event.target.value)}
-                    placeholder="p.ej. agua, mamá…"
-                    autoComplete="off"
-                  />
-                </Field>
-                {terminoFiltro !== '' && pictogramasFiltrados.length === 0 ? (
-                  <AvisoTab
-                    icono={<SearchX className="size-5" aria-hidden="true" />}
-                    mensaje={`Sin coincidencias para «${terminoFiltro}».`}
-                  />
-                ) : (
-                  grillaGlobales
-                )}
-              </>
-            )}
-          </TabsContent>
-
-          <TabsContent value="arasaac" className="flex flex-col gap-4 pt-4">
-            <Field>
-              <FieldLabel htmlFor="busqueda-arasaac">Buscar en ARASAAC</FieldLabel>
-              <Input
-                ref={inputArasaacRef}
-                id="busqueda-arasaac"
-                value={termino}
-                onChange={(event) => setTermino(event.target.value)}
-                placeholder="p.ej. pelota, agua, mamá…"
-                autoComplete="off"
-                autoFocus
-              />
-            </Field>
-            <div className="relative">
-              {contenidoArasaac}
-              {materializandoArasaacId !== null && (
-                <div
-                  role="status"
-                  className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/80"
-                >
-                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="size-5 animate-spin" aria-hidden="true" />
-                    Guardando en globales…
-                  </span>
-                </div>
+        <TabsContent value="globales" className="flex flex-col gap-4 pt-4">
+          {pictogramasQuery.isPending ? (
+            <GrillaSkeleton />
+          ) : pictogramasQuery.isError ? (
+            <AvisoTab
+              icono={<TriangleAlert className="size-5" aria-hidden="true" />}
+              mensaje="No se pudieron cargar los pictogramas globales."
+            />
+          ) : pictogramas.length === 0 ? (
+            <AvisoTab
+              icono={<SearchX className="size-5" aria-hidden="true" />}
+              mensaje="No hay pictogramas globales guardados todavía."
+            />
+          ) : (
+            <>
+              <Field>
+                <FieldLabel htmlFor="busqueda-globales">Buscar en guardados</FieldLabel>
+                <Input
+                  id="busqueda-globales"
+                  value={filtroGlobales}
+                  onChange={(event) => setFiltroGlobales(event.target.value)}
+                  placeholder="p.ej. agua, mamá…"
+                  autoComplete="off"
+                />
+              </Field>
+              {terminoFiltro !== '' && pictogramasFiltrados.length === 0 ? (
+                <AvisoTab
+                  icono={<SearchX className="size-5" aria-hidden="true" />}
+                  mensaje={`Sin coincidencias para «${terminoFiltro}».`}
+                />
+              ) : (
+                grillaGlobales
               )}
-            </div>
-          </TabsContent>
+            </>
+          )}
+        </TabsContent>
 
-          <TabsContent value="custom" className="flex flex-col gap-4 pt-4">
-            {pictogramasCustomQuery.isPending ? (
-              <GrillaSkeleton />
-            ) : pictogramasCustomQuery.isError ? (
-              <AvisoTab
-                icono={<TriangleAlert className="size-5" aria-hidden="true" />}
-                mensaje="No se pudieron cargar los pictogramas del paciente."
-              />
-            ) : pictogramasCustom.length === 0 ? (
-              <AvisoTab
-                icono={<SearchX className="size-5" aria-hidden="true" />}
-                mensaje="Este paciente no tiene pictogramas custom."
-              />
-            ) : (
-              grillaCustoms
+        <TabsContent value="arasaac" className="flex flex-col gap-4 pt-4">
+          <Field>
+            <FieldLabel htmlFor="busqueda-arasaac">Buscar en ARASAAC</FieldLabel>
+            <Input
+              ref={inputArasaacRef}
+              id="busqueda-arasaac"
+              value={termino}
+              onChange={(event) => setTermino(event.target.value)}
+              placeholder="p.ej. pelota, agua, mamá…"
+              autoComplete="off"
+            />
+          </Field>
+          <div className="relative">
+            {contenidoArasaac}
+            {materializando && (
+              <div
+                role="status"
+                className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/80"
+              >
+                <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+                  Guardando en globales…
+                </span>
+              </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </TabsContent>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={materializandoArasaacId !== null}
-            onClick={() => onAbiertoChange(false)}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            variant="default"
-            disabled={pendiente === null || materializandoArasaacId !== null}
-            onClick={() => void confirmar()}
-          >
-            Confirmar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <TabsContent value="custom" className="flex flex-col gap-4 pt-4">
+          {pictogramasCustomQuery.isPending ? (
+            <GrillaSkeleton />
+          ) : pictogramasCustomQuery.isError ? (
+            <AvisoTab
+              icono={<TriangleAlert className="size-5" aria-hidden="true" />}
+              mensaje="No se pudieron cargar los pictogramas del paciente."
+            />
+          ) : pictogramasCustom.length === 0 ? (
+            <AvisoTab
+              icono={<SearchX className="size-5" aria-hidden="true" />}
+              mensaje="Este paciente no tiene pictogramas custom."
+            />
+          ) : (
+            grillaCustoms
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={materializando}
+          onClick={() => onAbiertoChange(false)}
+        >
+          Cancelar
+        </Button>
+        <Button
+          type="button"
+          variant="default"
+          disabled={pendiente === null}
+          aria-disabled={materializando || undefined}
+          aria-busy={materializando || undefined}
+          onClick={() => void confirmar()}
+        >
+          Confirmar
+        </Button>
+      </div>
+    </section>
   )
 }
