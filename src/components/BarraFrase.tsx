@@ -78,7 +78,6 @@ export function BarraFrase({
         <Button
           type="button"
           variant="outline"
-          size="dense"
           disabled={vacia}
           onClick={onBorrarUltima}
           className="rounded-full border-2 border-zona-b-border-soft bg-zona-b-surface-raised text-zona-b-foreground-muted shadow-sm"
@@ -89,7 +88,6 @@ export function BarraFrase({
         <Button
           type="button"
           variant="outline"
-          size="dense"
           disabled={vacia}
           onClick={onLimpiar}
           className="rounded-full border-2 border-zona-b-border-soft bg-zona-b-surface-raised text-zona-b-foreground-muted shadow-sm"
