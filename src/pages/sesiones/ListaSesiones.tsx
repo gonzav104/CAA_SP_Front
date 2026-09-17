@@ -75,7 +75,7 @@ export function ListaSesiones() {
           </p>
         </div>
         {idValido && (
-          <Button asChild className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button asChild>
             <Link to={`/pacientes/${id}/sesiones/nuevo`}>
               <Plus aria-hidden="true" />
               Nueva sesión
@@ -100,7 +100,7 @@ export function ListaSesiones() {
           descripcion="Todavía no se registraron sesiones para este paciente."
         >
           {idValido && (
-            <Button asChild className="bg-blue-600 text-white hover:bg-blue-700">
+            <Button asChild>
               <Link to={`/pacientes/${id}/sesiones/nuevo`}>
                 <Plus aria-hidden="true" />
                 Nueva sesión
@@ -176,11 +176,19 @@ export function ListaSesiones() {
                   )}
 
                   <div className="flex items-center gap-1 border-t pt-3">
+                    {/*
+                      dark: override de sesiones-colaboradores (obs #102 Requirement 2):
+                      --primary plano sobre --card da ~2.63:1 en dark (falla WCAG AA
+                      4.5:1) porque --primary dark reutiliza el mismo L que su fondo
+                      de botón, no un paso de texto. Se remedia con un paso más claro
+                      del mismo hue (264.376°, ~5.44:1) solo acá, sin tocar el token
+                      --primary compartido con el resto de los botones ya enviados.
+                    */}
                     <Button
                       asChild
                       variant="ghost"
                       size="sm"
-                      className="text-blue-600 hover:text-blue-700"
+                      className="text-primary hover:text-primary dark:text-[oklch(0.65_0.15_264.376)] dark:hover:text-[oklch(0.65_0.15_264.376)]"
                     >
                       <Link to={`/pacientes/${id}/sesiones/${sesion.id}/editar`}>
                         <Pencil aria-hidden="true" />
