@@ -49,8 +49,8 @@ export function ModoUso() {
   const navegar = useNavigate()
   const cartillaQuery = useCartilla(idsValidos ? pid : undefined, idsValidos ? cid : undefined)
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null)
-  const { frase, agregarPalabra, borrarUltima, limpiar, removerIndice, cantidadPalabras } =
-    useConstructorOraciones()
+  const { frase, borrada, agregarPalabra, borrarUltima, limpiar, removerIndice, deshacer, cantidadPalabras } =
+    useConstructorOraciones(pid ?? '', cid ?? '')
 
   // Al desmontar (salir o volver), corta cualquier emisión en curso.
   useEffect(() => () => detener(), [])
@@ -129,7 +129,7 @@ export function ModoUso() {
               <AlertDialogTitle>¿Salir del modo de uso?</AlertDialogTitle>
               <AlertDialogDescription>
                 {cantidadPalabras > 0
-                  ? 'Tenés una frase armada. Si salís, se pierde y se corta el audio.'
+                  ? 'Tenés una frase armada. Si salís, se corta el audio, pero la frase queda guardada para cuando vuelvas.'
                   : 'Si salís, volvemos a la cartilla y se corta el audio.'}
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -143,10 +143,12 @@ export function ModoUso() {
 
       <BarraFrase
         frase={frase}
+        puedeDeshacer={borrada !== null}
         onDecir={decirFrase}
         onBorrarUltima={borrarUltima}
         onLimpiar={limpiar}
         onRemoverIndice={removerIndice}
+        onDeshacer={deshacer}
       />
 
       {categorias.length === 0 ? (
