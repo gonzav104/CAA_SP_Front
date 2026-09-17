@@ -143,7 +143,7 @@ export function CartillaView() {
         <Button asChild variant="outline">
           <Link to={`/pacientes/${pid}/cartillas`}>Volver a cartillas</Link>
         </Button>
-        <Button asChild className="bg-blue-600 text-white hover:bg-blue-700">
+        <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/80">
           <Link to={`/uso/${pid}/${cid}`}>
             <Play aria-hidden="true" />
             Abrir en modo uso

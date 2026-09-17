@@ -117,7 +117,7 @@ export function PictogramasCustom() {
         </div>
         {puedeEditar && (
           <Button
-            className="bg-blue-600 text-white hover:bg-blue-700"
+            className="bg-primary text-primary-foreground hover:bg-primary/80"
             onClick={() => setDialogoAbierto(true)}
           >
             <Upload aria-hidden="true" />
@@ -153,7 +153,7 @@ export function PictogramasCustom() {
         >
           {puedeEditar && (
           <Button
-            className="bg-blue-600 text-white hover:bg-blue-700"
+            className="bg-primary text-primary-foreground hover:bg-primary/80"
             onClick={() => setDialogoAbierto(true)}
           >
             <Upload aria-hidden="true" />
@@ -283,7 +283,7 @@ export function PictogramasCustom() {
               <Button
                 type="submit"
                 disabled={subir.isPending}
-                className="bg-blue-600 text-white hover:bg-blue-700"
+                className="bg-primary text-primary-foreground hover:bg-primary/80"
               >
                 {subir.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
                 Subir
