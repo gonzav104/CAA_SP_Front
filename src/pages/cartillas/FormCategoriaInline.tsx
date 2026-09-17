@@ -120,8 +120,8 @@ export function FormCategoriaInline({
                     title={color.nombre}
                     onClick={() => field.onChange(color.valor)}
                     className={cn(
-                      'size-8 rounded-full outline-none ring-offset-2 transition-shadow focus-visible:ring-2 focus-visible:ring-ring',
-                      seleccionado && 'ring-2 ring-ring',
+                      'size-8 rounded-full outline-none ring-offset-2 transition-shadow focus-visible:ring-[3px] focus-visible:ring-sidebar-ring/50',
+                      seleccionado && 'ring-[3px] ring-sidebar-ring/50',
                     )}
                     style={{ backgroundColor: color.valor }}
                   />
@@ -145,7 +145,7 @@ export function FormCategoriaInline({
         <Button
           type="submit"
           disabled={submitting}
-          className="bg-blue-600 text-white hover:bg-blue-700"
+          className="bg-primary text-primary-foreground hover:bg-primary/80"
         >
           {submitting && <Loader2 className="animate-spin" aria-hidden="true" />}
           {categoriaId ? 'Guardar categoría' : 'Crear categoría'}
