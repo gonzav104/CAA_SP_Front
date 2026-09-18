@@ -90,9 +90,9 @@ export function ModoUso() {
   }
 
   // Único punto donde se rama por paradigma de organización del tablero
-  // (sdd/modo-uso-zona-b, D6 — obs #118/#119). Hoy `organizacionDeCartilla`
-  // siempre devuelve `taxonomica`, así que esta rama es byte-idéntica al
-  // rendering actual; es un seam para PR4b, no todavía una feature.
+  // (sdd/modo-uso-zona-b, D6 — obs #118/#119). Desde PR4b lee el campo real
+  // del backend; `esquematica` todavía no tiene un rendering propio, así
+  // que cae al fallback de abajo hasta que ese trabajo se planifique.
   const organizacion = organizacionDeCartilla(cartilla)
   if (organizacion !== 'taxonomica') {
     return (

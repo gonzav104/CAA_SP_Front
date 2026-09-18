@@ -9,10 +9,17 @@ import { Card, CardContent } from '../../components/ui/card'
 import { CardVacio, DetalleSkeleton, ErrorCarga } from '../../components/estados'
 import { Field, FieldError, FieldLabel } from '../../components/ui/field'
 import { Input } from '../../components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
 import { useActualizarCartilla } from '../../hooks/cartillas'
 import { usePosesionCartilla } from '../../hooks/usePosesionCartilla'
 import { ordenarPorOrden } from '../../lib/cartilla'
-import type { CartillaDetalle } from '../../types'
+import type { CartillaDetalle, ParadigmaTablero } from '../../types'
 import { NoticeNoEncontrada, NoticeSoloLectura } from './accesoCartilla'
 import { FormCategoriaInline } from './FormCategoriaInline'
 import { SeccionCategoria } from './seccionCategoria'
@@ -30,7 +37,8 @@ import {
  * NO se renderiza el editor — se muestra un notice de solo lectura. El backend
  * además rechaza ediciones no autorizadas; la UI no llega a intentarlas.
  *
- * Cuando hay permiso: cabecera editable (nombre + esPrincipal) y el CRUD de la
+ * Cuando hay permiso: cabecera editable (nombre + esPrincipal + paradigma de
+ * organización del tablero, sdd/modo-uso-zona-b PR4b) y el CRUD de la
  * cartilla FULL INLINE en una sola pantalla (change editor-cartillas-unificado):
  * SeccionCategoria[] (items + forms inline + borrados con alert-dialog) y alta
  * de categoría con FormCategoriaInline — a la vista si la cartilla está vacía
@@ -41,6 +49,18 @@ import {
  */
 
 /* ------------------------------ Cabecera editable ------------------------------ */
+
+/**
+ * Paradigmas de organización de tablero ofrecidos al terapeuta
+ * (sdd/modo-uso-zona-b PR4b). Sólo los dos que el backend acepta —
+ * `'escena-visual'` (Visual Scene Display) NO existe en este tipo ni se
+ * lista acá, ni siquiera deshabilitado: el modelo de datos no lo soporta
+ * (obs #118/#119).
+ */
+const PARADIGMAS: Array<{ valor: ParadigmaTablero; etiqueta: string; descripcion: string }> = [
+  { valor: 'taxonomica', etiqueta: 'Categorías', descripcion: 'Navegación por categoría (grilla actual)' },
+  { valor: 'esquematica', etiqueta: 'Esquemática', descripcion: 'Agrupamiento por actividad' },
+]
 
 function FormCabeceraCartilla({
   cartilla,
@@ -94,6 +114,28 @@ function FormCabeceraCartilla({
                   />
                   Cartilla principal (abre por defecto en modo uso)
                 </label>
+              </Field>
+            )}
+          />
+          <Controller
+            control={form.control}
+            name="paradigma"
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="paradigma">Organización del tablero</FieldLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="paradigma" aria-invalid={fieldState.invalid} className="w-full">
+                    <SelectValue placeholder="Elegí una organización" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PARADIGMAS.map((paradigma) => (
+                      <SelectItem key={paradigma.valor} value={paradigma.valor}>
+                        {paradigma.etiqueta} — {paradigma.descripcion}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
           />

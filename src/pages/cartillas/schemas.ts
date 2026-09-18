@@ -23,6 +23,12 @@ export const cartillaSchema = z.object({
   nombre: z.string().min(1, 'El nombre es obligatorio'),
   /** La cartilla principal es la que abre por defecto el modo de uso. */
   esPrincipal: z.boolean().optional(),
+  /**
+   * Paradigma de organización del tablero (sdd/modo-uso-zona-b PR4b).
+   * Opcional: sólo la cabecera del editor lo ofrece hoy; el alta de cartilla
+   * no lo pide y queda en el default server-side ('taxonomica').
+   */
+  paradigma: z.enum(['taxonomica', 'esquematica']).optional(),
 })
 
 export type CartillaValues = z.infer<typeof cartillaSchema>
@@ -32,6 +38,7 @@ export function toCartillaInput(values: CartillaValues): CartillaInput {
   return {
     nombre: values.nombre.trim(),
     ...(values.esPrincipal !== undefined ? { esPrincipal: values.esPrincipal } : {}),
+    ...(values.paradigma !== undefined ? { paradigma: values.paradigma } : {}),
   }
 }
 
@@ -40,6 +47,8 @@ export function toCartillaValues(cartilla: Cartilla | CartillaDetalle): Cartilla
   return {
     nombre: cartilla.nombre,
     esPrincipal: cartilla.esPrincipal,
+    // `Cartilla` (listado) no trae `paradigma` — sólo `CartillaDetalle`.
+    paradigma: 'paradigma' in cartilla ? cartilla.paradigma : undefined,
   }
 }
 

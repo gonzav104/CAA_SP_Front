@@ -10,10 +10,26 @@
  * botón Guardar/Agregar categoría), no solo la presencia del notice.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import type { CartillaDetalle } from '../../types/Cartilla'
 import { EditorCartilla } from './EditorCartilla'
+
+// jsdom no implementa `hasPointerCapture`/`scrollIntoView`, que el `Select`
+// de Radix (usado por el selector de paradigma, sdd/modo-uso-zona-b PR4b)
+// necesita al abrir/cerrar el listbox — mismo criterio de stub puntual por
+// archivo que `ResizeObserverStub` en SeleccionPictograma.test.tsx/FormItemInline.test.tsx.
+const elementProto = window.HTMLElement.prototype as HTMLElement & {
+  hasPointerCapture?: (pointerId: number) => boolean
+  setPointerCapture?: (pointerId: number) => void
+  releasePointerCapture?: (pointerId: number) => void
+  scrollIntoView?: () => void
+}
+elementProto.hasPointerCapture ??= () => false
+elementProto.setPointerCapture ??= () => {}
+elementProto.releasePointerCapture ??= () => {}
+elementProto.scrollIntoView ??= () => {}
 
 const { usePosesionCartillaMock } = vi.hoisted(() => ({
   usePosesionCartillaMock: vi.fn(),
@@ -44,6 +60,7 @@ const cartillaSinCategorias: CartillaDetalle = {
   creadorId: 'usuario-1',
   nombre: 'Cartilla de Juan',
   esPrincipal: false,
+  paradigma: 'taxonomica',
   categorias: [],
 }
 
@@ -87,6 +104,7 @@ describe('EditorCartilla — gate de posesión vía usePosesionCartilla', () => 
     // el DOM, ni siquiera oculto — el gate corta ANTES de montar ese JSX.
     expect(screen.queryByRole('textbox')).toBeNull()
     expect(screen.queryByRole('checkbox')).toBeNull()
+    expect(screen.queryByRole('combobox')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Agregar categoría' })).toBeNull()
 
@@ -120,5 +138,47 @@ describe('EditorCartilla — gate de posesión vía usePosesionCartilla', () => 
 
     expect(container.querySelectorAll('[data-slot="skeleton"]').length).toBeGreaterThan(0)
     expect(screen.queryByRole('textbox')).toBeNull()
+  })
+})
+
+describe('EditorCartilla — selector de paradigma de organización (sdd/modo-uso-zona-b PR4b)', () => {
+  it('muestra el paradigma actual de la cartilla precargado en el selector', () => {
+    usePosesionCartillaMock.mockReturnValue({
+      estado: 'propia',
+      cartilla: { ...cartillaSinCategorias, paradigma: 'esquematica' },
+    })
+
+    renderEditor()
+
+    const selector = screen.getByRole('combobox', { name: 'Organización del tablero' })
+    expect(selector.textContent).toContain('Esquemática')
+  })
+
+  it('nunca ofrece escena-visual como opción — no existe en el modelo de datos', () => {
+    usePosesionCartillaMock.mockReturnValue({ estado: 'propia', cartilla: cartillaSinCategorias })
+
+    renderEditor()
+
+    expect(screen.queryByText(/escena.visual/i)).toBeNull()
+  })
+
+  it('al elegir otro paradigma y guardar, el mutate incluye el nuevo valor', async () => {
+    const user = userEvent.setup()
+    usePosesionCartillaMock.mockReturnValue({ estado: 'propia', cartilla: cartillaSinCategorias })
+    actualizarCartillaMock.mockResolvedValue({ id: 'cartilla-1', nombre: 'Cartilla de Juan' })
+
+    renderEditor()
+
+    await user.click(screen.getByRole('combobox', { name: 'Organización del tablero' }))
+    await user.click(await screen.findByRole('option', { name: /Esquemática/ }))
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    await waitFor(() => {
+      expect(actualizarCartillaMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({ paradigma: 'esquematica' }),
+        }),
+      )
+    })
   })
 })
