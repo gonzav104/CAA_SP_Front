@@ -1,4 +1,4 @@
-import { Eraser, Undo2, Volume2, X } from 'lucide-react'
+import { Eraser, RotateCcw, Undo2, Volume2, X } from 'lucide-react'
 import { Button } from './ui/button'
 import { cn } from '../lib/utils'
 
@@ -6,20 +6,28 @@ import { cn } from '../lib/utils'
  * Barra del constructor de oraciones (RI-13/RI-14, Zona B).
  * - Chips con la frase acumulada (X individual por chip).
  * - Acciones: «Borrar último», «Limpiar» y «Decir» (accent grande, llama TTS).
+ * - «Deshacer» (sdd/modo-uso-zona-b, D4): «Limpiar» es reversible, no
+ *   destructivo con confirmación — un modal que el chico deba cerrar
+ *   interrumpe el habla y agrega una barrera cognitiva a su propia
+ *   comunicación. Solo visible mientras haya algo para restaurar.
  * Diseño cálido y colorido, coherente con ModoUso (no con el dashboard).
  */
 export function BarraFrase({
   frase,
+  puedeDeshacer,
   onDecir,
   onBorrarUltima,
   onLimpiar,
   onRemoverIndice,
+  onDeshacer,
 }: {
   frase: string[]
+  puedeDeshacer: boolean
   onDecir: () => void
   onBorrarUltima: () => void
   onLimpiar: () => void
   onRemoverIndice: (indice: number) => void
+  onDeshacer: () => void
 }) {
   const fraseTexto = frase.join(' ')
   const vacia = frase.length === 0
@@ -89,6 +97,17 @@ export function BarraFrase({
           <Eraser className="size-4" aria-hidden="true" />
           Limpiar
         </Button>
+        {puedeDeshacer && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onDeshacer}
+            className="rounded-full border-2 border-zona-b-border-soft bg-zona-b-surface-raised text-zona-b-foreground-muted shadow-sm"
+          >
+            <RotateCcw className="size-4" aria-hidden="true" />
+            Deshacer
+          </Button>
+        )}
         <span
           className={cn(
             'ml-auto text-sm font-semibold text-zona-b-foreground-muted',

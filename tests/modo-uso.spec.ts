@@ -174,4 +174,66 @@ test.describe('ModoUso — comportamiento, accesibilidad y sizing (TERAPEUTA con
 
     expect(escalaPresionado).toBe('0.95')
   })
+
+  test('recargar la página en medio de una frase la restaura (sdd/modo-uso-zona-b, D3: sessionStorage)', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/uso/${pacienteId}/${cartillaId}`)
+
+    await page.getByRole('button', { name: `Agregar ${ITEM_1} a la frase` }).click()
+    await expect(page.locator('span[aria-live="polite"]')).toHaveText(ITEM_1)
+
+    await page.reload()
+
+    await expect(page.locator('span[aria-live="polite"]')).toHaveText(ITEM_1)
+  })
+
+  test('navegar atrás y volver a la misma cartilla restaura la frase', async ({ page }) => {
+    await page.goto(`${BASE}/uso/${pacienteId}/${cartillaId}`)
+
+    await page.getByRole('button', { name: `Agregar ${ITEM_1} a la frase` }).click()
+    await expect(page.locator('span[aria-live="polite"]')).toHaveText(ITEM_1)
+
+    await page.goto(`${BASE}/pacientes/${pacienteId}`)
+    await page.goBack()
+
+    await expect(page).toHaveURL(new RegExp(`/uso/${pacienteId}/${cartillaId}$`))
+    await expect(page.locator('span[aria-live="polite"]')).toHaveText(ITEM_1)
+  })
+
+  test('«Limpiar» es reversible: ofrece «Deshacer» y restaura la frase sin confirmación (D4)', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/uso/${pacienteId}/${cartillaId}`)
+
+    await page.getByRole('button', { name: `Agregar ${ITEM_1} a la frase` }).click()
+    await expect(page.locator('span[aria-live="polite"]')).toHaveText(ITEM_1)
+
+    await expect(page.getByRole('button', { name: 'Deshacer' })).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Limpiar', exact: true }).click()
+    await expect(page.locator('span[aria-live="polite"]')).toHaveText('Frase vacía')
+
+    const deshacerBtn = page.getByRole('button', { name: 'Deshacer' })
+    await expect(deshacerBtn).toBeVisible()
+    await deshacerBtn.click()
+
+    await expect(page.locator('span[aria-live="polite"]')).toHaveText(ITEM_1)
+    await expect(page.getByRole('button', { name: 'Deshacer' })).toHaveCount(0)
+  })
+
+  test('el diálogo de salida ya no afirma que la frase "se pierde" al salir con palabras armadas', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/uso/${pacienteId}/${cartillaId}`)
+
+    await page.getByRole('button', { name: `Agregar ${ITEM_1} a la frase` }).click()
+    await expect(page.locator('span[aria-live="polite"]')).toHaveText(ITEM_1)
+
+    await page.getByRole('button', { name: 'Salir', exact: true }).click()
+    const dialog = page.getByRole('alertdialog', { name: '¿Salir del modo de uso?' })
+    await expect(dialog).toBeVisible()
+    await expect(dialog).not.toContainText('se pierde')
+    await expect(dialog).toContainText('queda guardada')
+  })
 })
