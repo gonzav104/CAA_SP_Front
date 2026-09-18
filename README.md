@@ -1,12 +1,5 @@
 # CAA_SP_Front — Frontend de Comunicación Aumentativa y Alternativa
 
-> [!IMPORTANT]
-> **Salvedad sobre el versionado de `.md`.**
-> Por decisión del proyecto, `.gitignore` excluye los archivos `*.md` (sección «Archivos de configuración de IA y docs»): la documentación en Markdown —`AGENTS.md`, `INFORME_AUDITORIA.md`, artefactos de `openspec/` y `sdd/`— **no se sube al repositorio** y vive únicamente en local (puede comprobarse con `git ls-files '*.md'`).
-> **Este `README.md` es la única excepción**: el `.gitignore` incluye la regla `!README.md`, por lo que sí está versionado y se sube al repo. Si en el futuro se quisiera versionar otra documentación, hay que agregar su excepción explícita (por ejemplo `!INFORME_AUDITORIA.md`) o usar `git add -f <archivo>`.
-
----
-
 ## 1. Descripción del proyecto
 
 Aplicación web de **Comunicación Aumentativa y Alternativa (CAA)** para personas con dificultades en el habla. El frontend sirve a dos audiencias muy distintas, con dos interfaces separadas:
@@ -40,7 +33,7 @@ La interfaz debe ser profesional, accesible, predecible y fácil de usar. **No**
 ## 4. Instalación y puesta en marcha
 
 ```bash
-npm install          # instala dependencias (necesario con node_modules fresco o incompleto)
+npm install          # instala dependencias
 npm run dev          # Vite en http://localhost:5173
 ```
 
@@ -190,8 +183,7 @@ npm run test
 ```
 
 - Config en `vite.config.ts`: entorno base `node` + `// @vitest-environment jsdom` por archivo cuando el test necesita DOM.
-- Los archivos jsdom requieren `jsdom` + `@testing-library/react` instalados (ver Troubleshooting).
-- Hasta la fecha: ~56 tests en archivos node + suites jsdom co-localizadas (cartillas, posesión, constructor de oraciones).
+- Los tests con DOM (cartillas, posesión, constructor de oraciones) usan `jsdom` + `@testing-library/react`, ya declarados en `package.json`.
 
 ### E2E (Playwright)
 
@@ -211,23 +203,3 @@ La accesibilidad es prioridad funcional, no estética. Antes de terminar un camb
 
 - Zona B: atención especial al **contraste de los colores de categoría** (no asumir `text-white` sobre cualquier color; la paleta Fitzgerald está en `src/lib/color.ts`). El piso táctil de 44px está endurecido por test y por la geometría.
 - Zona A: los CTAs usan `bg-primary` (`--primary`) — las specs de design tokens verifican los colores renderizados.
-
-## 13. Informe de auditoría y deuda conocida
-
-`INFORME_AUDITORIA.md` (local, no versionado por la salvedad de `.md`) documenta hallazgos conocidos. Los principales, vigentes a la fecha:
-
-- **Contraste Zona B**: algunos colores de categoría no alcanzan 4.5:1 con `text-white` (p. ej. amarillo sustantivos ~1.9:1). Está trackeado como pendiente; no asumir resuelto.
-- **Guards y permisos**: existen varios patrones de protección de rutas; no crear un cuarto patrón.
-- **Edición de pacientes**: el gate de `Lista.tsx` fue corregido (solo TERAPEUTA edita); cuidado al tocarlo.
-- **Registro y Sesión**: diferencias conocidas entre el contrato real del backend y el esperado (nullables en sesiones).
-
-## 14. Troubleshooting
-
-- **`TS2307: Cannot find module '@testing-library/react' / 'jsdom'`** en tests: el `node_modules` local está incompleto. Ejecutar `npm install` (los paquetes están declarados en `package.json` y en el lockfile).
-- **Los tests jsdom no arrancan** (`Cannot find package 'jsdom'`): misma causa; falta `npm install`.
-- **Problemas de CORS en E2E**: el backend limita orígenes a `:5173`; el E2E necesita que el dev server corra en ese puerto.
-- **El login no responde**: verificar que el backend esté en `:8080` y que la cookie `jwt` se guarde (requiere `withCredentials`).
-
----
-
-*Documentación de referencia. El resto de los `.md` del proyecto queda intencionalmente fuera de git (ver salvedad al inicio); este README es la excepción versionada.*
