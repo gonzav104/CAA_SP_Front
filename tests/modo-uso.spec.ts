@@ -236,4 +236,55 @@ test.describe('ModoUso — comportamiento, accesibilidad y sizing (TERAPEUTA con
     await expect(dialog).not.toContainText('se pierde')
     await expect(dialog).toContainText('queda guardada')
   })
+
+  test('«Borrar último» y «Limpiar» miden al menos 44x44px (touch target, SC 2.5.5) y conservan su nombre accesible', async ({
+    page,
+  }) => {
+    await page.goto(`${BASE}/uso/${pacienteId}/${cartillaId}`)
+
+    await page.getByRole('button', { name: `Agregar ${ITEM_1} a la frase` }).click()
+    await expect(page.locator('span[aria-live="polite"]')).toHaveText(ITEM_1)
+
+    const borrarUltimoBtn = page.getByRole('button', { name: 'Borrar último' })
+    const limpiarBtn = page.getByRole('button', { name: 'Limpiar', exact: true })
+
+    for (const boton of [borrarUltimoBtn, limpiarBtn]) {
+      await expect(boton).toBeVisible()
+      const box = await boton.boundingBox()
+      expect(box).not.toBeNull()
+      expect(box!.width).toBeGreaterThanOrEqual(44)
+      expect(box!.height).toBeGreaterThanOrEqual(44)
+    }
+
+    // El nombre accesible no cambia al resolver el tamaño con la talla por
+    // defecto del Button en vez de `size="dense"`.
+    await expect(borrarUltimoBtn).toHaveAccessibleName('Borrar último')
+    await expect(limpiarBtn).toHaveAccessibleName('Limpiar')
+  })
+
+  test('los botones de categoría en el nav lateral (≥md) miden al menos 44x44px', async ({ page }) => {
+    await page.goto(`${BASE}/uso/${pacienteId}/${cartillaId}`)
+
+    const categoriaBtn = page.getByRole('button', { name: 'Comidas' })
+    await expect(categoriaBtn).toBeVisible()
+    const box = await categoriaBtn.boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.width).toBeGreaterThanOrEqual(44)
+    expect(box!.height).toBeGreaterThanOrEqual(44)
+  })
+
+  test.describe('nav de categorías en strip horizontal (<md)', () => {
+    test.use({ viewport: { width: 390, height: 844 } })
+
+    test('los botones de categoría en el strip miden al menos 44x44px', async ({ page }) => {
+      await page.goto(`${BASE}/uso/${pacienteId}/${cartillaId}`)
+
+      const categoriaBtn = page.getByRole('button', { name: 'Comidas' })
+      await expect(categoriaBtn).toBeVisible()
+      const box = await categoriaBtn.boundingBox()
+      expect(box).not.toBeNull()
+      expect(box!.width).toBeGreaterThanOrEqual(44)
+      expect(box!.height).toBeGreaterThanOrEqual(44)
+    })
+  })
 })

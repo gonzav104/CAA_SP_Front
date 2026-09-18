@@ -22,6 +22,7 @@ import { normalizeColorHex } from '../../lib/color'
 import { detener, hablar } from '../../lib/tts'
 import { cn } from '../../lib/utils'
 import type { CategoriaDetalle } from '../../types'
+import { CLASE_GRID_TABLERO } from './geometria'
 
 /**
  * Modo de uso (Zona B, T9): pantalla full-screen del chico en
@@ -240,7 +241,7 @@ export function ModoUso() {
               </div>
             ) : (
               <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
-                <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+                <div className={CLASE_GRID_TABLERO}>
                   {items.map((item) => (
                     <PictogramaTile
                       key={item.id}
