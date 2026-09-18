@@ -8,15 +8,16 @@ const ITEM_1 = 'Agua'
 const ITEM_2 = 'Pelota'
 
 /**
- * Class attribute exacto del tile de uso, capturado con Playwright
- * (`getAttribute('class')`) contra el commit base (ANTES del refactor a
- * `PictogramaTile`) — ver sdd/design-foundation/design, "Class identity".
- * Es el valor combinado real que produce `cn(buttonVariants({...}))`
- * (clases base de `Button` + overrides de `ModoUso.tsx:249`), no solo el
- * string literal del className — por eso se captura, no se escribe a mano.
+ * Class attribute exacto del tile de uso, re-capturado (`getAttribute('class')`
+ * vía render real de `PictogramaTile`, mismo `cn(buttonVariants({...}))` que
+ * produce Playwright) DESPUÉS de la migración de tokens Zona B (sdd/modo-uso-zona-b,
+ * tarea 1.9). Este valor DELIBERADAMENTE difiere del capturado en
+ * sdd/design-foundation — la ruptura es esperada y revisada, nunca una
+ * regresión a perseguir: `border-white/70`/`bg-white`/`text-slate-800`
+ * (alpha, ad-hoc) pasan a sus equivalentes opacos `zona-b-*`.
  */
 const CLASE_TILE_USO_BASE_COMMIT =
-  "group/button shrink-0 bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 flex min-h-[120px] min-w-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-white/70 bg-white p-2 text-slate-800 shadow-sm transition-transform hover:bg-white hover:shadow-md active:scale-95"
+  "group/button shrink-0 bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 h-11 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 flex min-h-[120px] min-w-[120px] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-zona-b-border-soft bg-zona-b-surface-raised p-2 text-zona-b-foreground shadow-sm transition-transform hover:bg-zona-b-surface-raised hover:shadow-md active:scale-95"
 
 /**
  * Fixture de datos reales: crea una cartilla + categoría + 2 items vía API
