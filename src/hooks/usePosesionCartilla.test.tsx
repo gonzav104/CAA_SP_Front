@@ -34,6 +34,7 @@ const cartillaPropia: CartillaDetalle = {
   creadorId: 'usuario-1',
   nombre: 'Cartilla de Juan',
   esPrincipal: true,
+  paradigma: 'taxonomica',
   categorias: [],
 }
 

@@ -5,36 +5,60 @@ import { ORGANIZACION_POR_DEFECTO, organizacionDeCartilla } from './organizacion
 /**
  * Adaptador de organización de tablero (sdd/modo-uso-zona-b, D6 — obs #118):
  * este es el ÚNICO punto donde se resuelve el paradigma de agrupamiento del
- * tablero. Hoy `CartillaDetalle` no trae ningún campo de paradigma (verificado
- * en fuente, obs #119), así que el adaptador devuelve el default para
- * cualquier cartilla — esto es un seam deliberado (obs #119/#115), no todavía
- * una feature: cuando el backend exponga el campo real (PR4b, bloqueado en
- * obs #119), se lee y valida ACÁ y en ningún otro lado.
+ * tablero. Desde PR4b, `CartillaDetalle.paradigma` es un campo real del
+ * backend (`caa_sp`, commit `1c52cb6`) — el adaptador lo lee y valida acá.
  *
- * `'escena-visual'` (Visual Scene Display) está declarado en la unión de
- * tipos pero el adaptador nunca lo devuelve: VSD necesita imagen de escena +
- * coordenadas de hotspot que el modelo de datos no tiene (obs #119), y queda
- * explícitamente fuera de alcance de todo este cambio.
+ * `'escena-visual'` (Visual Scene Display) NO existe en `CartillaDetalle.paradigma`
+ * (el tipo del campo es `'taxonomica' | 'esquematica'`, así que el compilador
+ * ya lo hace inalcanzable ahí), pero el fallback defensivo de runtime sigue
+ * existiendo para cualquier valor no reconocido en general — dato corrupto,
+ * versión vieja del backend, etc. — matching spec `board-organization`.
  */
 const CARTILLA_BASE: CartillaDetalle = {
   id: 'cartilla-1',
   creadorId: 'terapeuta-1',
   nombre: 'Cartilla de prueba',
   esPrincipal: true,
+  paradigma: 'taxonomica',
   categorias: [],
 }
 
 describe('organizacionDeCartilla — adaptador de paradigma de organización', () => {
-  it('devuelve el default (taxonomica) para cualquier cartilla hoy', () => {
-    expect(organizacionDeCartilla(CARTILLA_BASE)).toBe('taxonomica')
-    expect(organizacionDeCartilla(CARTILLA_BASE)).toBe(ORGANIZACION_POR_DEFECTO)
+  it('devuelve taxonomica cuando cartilla.paradigma es taxonomica', () => {
+    const cartilla: CartillaDetalle = { ...CARTILLA_BASE, paradigma: 'taxonomica' }
+
+    expect(organizacionDeCartilla(cartilla)).toBe('taxonomica')
+  })
+
+  it('devuelve esquematica cuando cartilla.paradigma es esquematica', () => {
+    const cartilla: CartillaDetalle = { ...CARTILLA_BASE, paradigma: 'esquematica' }
+
+    expect(organizacionDeCartilla(cartilla)).toBe('esquematica')
   })
 
   it('el default está pineado como taxonomica', () => {
     expect(ORGANIZACION_POR_DEFECTO).toBe('taxonomica')
   })
 
-  it('nunca devuelve escena-visual (VSD fuera de alcance, sin dato de escena/hotspot)', () => {
-    expect(organizacionDeCartilla(CARTILLA_BASE)).not.toBe('escena-visual')
+  it('cae al default ante un valor de paradigma no reconocido (dato corrupto/legado)', () => {
+    // El tipo de `CartillaDetalle.paradigma` ya no permite otros strings en
+    // tiempo de compilación; simulamos un dato corrupto/legado tal como
+    // podría llegar en runtime (versión vieja de la API, storage stale, etc.)
+    const cartillaCorrupta = {
+      ...CARTILLA_BASE,
+      paradigma: 'grid-invalido',
+    } as unknown as CartillaDetalle
+
+    expect(organizacionDeCartilla(cartillaCorrupta)).toBe(ORGANIZACION_POR_DEFECTO)
+  })
+
+  it('nunca devuelve escena-visual, ni siquiera con un dato corrupto que lo mande literal', () => {
+    const cartillaCorrupta = {
+      ...CARTILLA_BASE,
+      paradigma: 'escena-visual',
+    } as unknown as CartillaDetalle
+
+    expect(organizacionDeCartilla(cartillaCorrupta)).not.toBe('escena-visual')
+    expect(organizacionDeCartilla(cartillaCorrupta)).toBe(ORGANIZACION_POR_DEFECTO)
   })
 })

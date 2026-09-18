@@ -6,8 +6,7 @@ import type { CartillaDetalle } from '../../types/Cartilla'
  *
  * - `'taxonomica'`: navegación por categoría (grid actual, sin cambios).
  * - `'esquematica'`: agrupamiento por actividad/escena en vez de categoría
- *   léxica. Habilitado por el corte 4b (bloqueado, obs #119) una vez que el
- *   backend exponga el campo real.
+ *   léxica. Habilitado desde PR4b, que lee el campo real del backend.
  * - `'escena-visual'`: Visual Scene Display. Declarado acá porque el
  *   paradigma existe conceptualmente (ASHA/Light et al. 2019, obs #118), pero
  *   `organizacionDeCartilla` NUNCA lo devuelve: VSD necesita una imagen de
@@ -18,23 +17,33 @@ import type { CartillaDetalle } from '../../types/Cartilla'
  */
 export type OrganizacionTablero = 'taxonomica' | 'esquematica' | 'escena-visual'
 
-/** Paradigma usado cuando no hay (todavía) un campo de backend que leer. */
+/** Paradigma usado cuando el campo real está ausente o no es reconocido. */
 export const ORGANIZACION_POR_DEFECTO: OrganizacionTablero = 'taxonomica'
+
+/**
+ * Guarda de runtime: sólo los dos valores que el backend efectivamente envía
+ * (verificado en fuente, obs #119; contrato real confirmado en PR4b) son
+ * válidos. `'escena-visual'` y cualquier otro string caen acá — la guarda
+ * queda en `unknown` a propósito, para cubrir dato corrupto/legado además
+ * del caso tipado.
+ */
+function esParadigmaValido(valor: unknown): valor is OrganizacionTablero {
+  return valor === 'taxonomica' || valor === 'esquematica'
+}
 
 /**
  * Único punto donde se resuelve el paradigma de organización del tablero.
  *
- * Hoy `CartillaDetalle` no trae ningún campo de paradigma (verificado en
- * fuente, obs #119) — este adaptador devuelve el default incondicionalmente.
- * Es un seam deliberado, no todavía una feature (obs #119/#115): cuando el
- * backend exponga el campo real (PR4b, bloqueado en obs #119), se lee y
- * valida ACÁ y en ningún otro lado. `ModoUso` ya rama sobre este valor de
- * retorno, así que el trabajo futuro de PR4b es "cablear el valor real" en
- * vez de "agregar ramificación por primera vez".
+ * Desde PR4b, `CartillaDetalle.paradigma` es el campo real del backend
+ * (`caa_sp`, commit `1c52cb6`): valores `'taxonomica'`/`'esquematica'`,
+ * byte-a-byte iguales al wire format. Se lee y valida ACÁ y en ningún otro
+ * lado — `ModoUso` sólo consume el valor de retorno de esta función.
  *
- * `_cartilla` no se usa todavía — queda en la firma para que PR4b no rompa
- * el contrato del llamador al empezar a leerla.
+ * `'escena-visual'` nunca puede llegar tipado desde `CartillaDetalle`
+ * (el campo no lo incluye), pero la validación de runtime sigue existiendo
+ * para dato corrupto/legado — cualquier valor no reconocido cae al default,
+ * nunca revienta ni propaga un valor inválido.
  */
-export function organizacionDeCartilla(_cartilla: CartillaDetalle): OrganizacionTablero {
-  return ORGANIZACION_POR_DEFECTO
+export function organizacionDeCartilla(cartilla: CartillaDetalle): OrganizacionTablero {
+  return esParadigmaValido(cartilla.paradigma) ? cartilla.paradigma : ORGANIZACION_POR_DEFECTO
 }
