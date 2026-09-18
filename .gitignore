@@ -29,6 +29,8 @@ dist-ssr
 
 # Archivos de configuración de IA y docs
 *.md
+# Excepción: el README del proyecto SÍ se versiona.
+!README.md
 opencode.json
 AGENTS.md
 
