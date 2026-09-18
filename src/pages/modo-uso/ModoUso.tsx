@@ -23,6 +23,7 @@ import { detener, hablar } from '../../lib/tts'
 import { cn } from '../../lib/utils'
 import type { CategoriaDetalle } from '../../types'
 import { CLASE_GRID_TABLERO } from './geometria'
+import { organizacionDeCartilla } from './organizacion'
 
 /**
  * Modo de uso (Zona B, T9): pantalla full-screen del chico en
@@ -86,6 +87,20 @@ export function ModoUso() {
   const cartilla = cartillaQuery.data
   if (!cartilla) {
     return <PantallaError mensaje="No se encontró la cartilla." volverA={`/pacientes/${pid}`} />
+  }
+
+  // Único punto donde se rama por paradigma de organización del tablero
+  // (sdd/modo-uso-zona-b, D6 — obs #118/#119). Hoy `organizacionDeCartilla`
+  // siempre devuelve `taxonomica`, así que esta rama es byte-idéntica al
+  // rendering actual; es un seam para PR4b, no todavía una feature.
+  const organizacion = organizacionDeCartilla(cartilla)
+  if (organizacion !== 'taxonomica') {
+    return (
+      <PantallaError
+        mensaje="Este tipo de organización de tablero todavía no está disponible."
+        volverA={`/pacientes/${pid}`}
+      />
+    )
   }
 
   const categorias = ordenarPorOrden(cartilla.categorias ?? [])
