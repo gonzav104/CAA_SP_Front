@@ -6,7 +6,7 @@ export type {
 } from './Usuario'
 export type { RegistroRequest } from './Usuario'
 export type { Paciente, PacienteInput, Permiso } from './Paciente'
-export type { Cartilla, CartillaDetalle, CartillaInput } from './Cartilla'
+export type { Cartilla, CartillaDetalle, CartillaInput, ParadigmaTablero } from './Cartilla'
 export type { Categoria, CategoriaDetalle, CategoriaInput } from './Categoria'
 export type { ItemCartilla, ItemDetalle, ItemCartillaInput } from './ItemCartilla'
 export type {

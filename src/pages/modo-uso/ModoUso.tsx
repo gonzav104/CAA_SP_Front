@@ -22,6 +22,8 @@ import { normalizeColorHex } from '../../lib/color'
 import { detener, hablar } from '../../lib/tts'
 import { cn } from '../../lib/utils'
 import type { CategoriaDetalle } from '../../types'
+import { CLASE_GRID_TABLERO } from './geometria'
+import { organizacionDeCartilla } from './organizacion'
 
 /**
  * Modo de uso (Zona B, T9): pantalla full-screen del chico en
@@ -49,8 +51,8 @@ export function ModoUso() {
   const navegar = useNavigate()
   const cartillaQuery = useCartilla(idsValidos ? pid : undefined, idsValidos ? cid : undefined)
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string | null>(null)
-  const { frase, agregarPalabra, borrarUltima, limpiar, removerIndice, cantidadPalabras } =
-    useConstructorOraciones()
+  const { frase, borrada, agregarPalabra, borrarUltima, limpiar, removerIndice, deshacer, cantidadPalabras } =
+    useConstructorOraciones(pid ?? '', cid ?? '')
 
   // Al desmontar (salir o volver), corta cualquier emisión en curso.
   useEffect(() => () => detener(), [])
@@ -63,10 +65,10 @@ export function ModoUso() {
     return (
       <div
         role="status"
-        className="flex h-dvh flex-col items-center justify-center gap-4 bg-amber-50"
+        className="flex h-dvh flex-col items-center justify-center gap-4 bg-zona-b-surface"
       >
-        <Loader2 className="size-10 animate-spin text-amber-500" aria-hidden="true" />
-        <p className="text-lg font-semibold text-slate-700">Preparando la cartilla…</p>
+        <Loader2 className="size-10 animate-spin text-zona-b-accent" aria-hidden="true" />
+        <p className="text-lg font-semibold text-zona-b-foreground-muted">Preparando la cartilla…</p>
         <span className="sr-only">Preparando la cartilla…</span>
       </div>
     )
@@ -85,6 +87,20 @@ export function ModoUso() {
   const cartilla = cartillaQuery.data
   if (!cartilla) {
     return <PantallaError mensaje="No se encontró la cartilla." volverA={`/pacientes/${pid}`} />
+  }
+
+  // Único punto donde se rama por paradigma de organización del tablero
+  // (sdd/modo-uso-zona-b, D6 — obs #118/#119). Desde PR4b lee el campo real
+  // del backend; `esquematica` todavía no tiene un rendering propio, así
+  // que cae al fallback de abajo hasta que ese trabajo se planifique.
+  const organizacion = organizacionDeCartilla(cartilla)
+  if (organizacion !== 'taxonomica') {
+    return (
+      <PantallaError
+        mensaje="Este tipo de organización de tablero todavía no está disponible."
+        volverA={`/pacientes/${pid}`}
+      />
+    )
   }
 
   const categorias = ordenarPorOrden(cartilla.categorias ?? [])
@@ -109,16 +125,16 @@ export function ModoUso() {
   }
 
   return (
-    <div className="flex h-dvh touch-manipulation select-none flex-col overflow-hidden overscroll-none bg-amber-50">
-      <header className="safe-area-t flex min-h-16 shrink-0 items-center justify-between gap-3 border-b-2 border-amber-200 bg-white/70 px-3 py-2 sm:px-5">
-        <h1 className="min-w-0 flex-1 text-xl font-bold leading-tight tracking-tight text-slate-800 sm:text-2xl">
+    <div className="flex h-dvh touch-manipulation select-none flex-col overflow-hidden overscroll-none bg-zona-b-surface">
+      <header className="safe-area-t flex min-h-16 shrink-0 items-center justify-between gap-3 border-b-2 border-zona-b-border bg-zona-b-surface-raised px-3 py-2 sm:px-5">
+        <h1 className="min-w-0 flex-1 text-xl font-bold leading-tight tracking-tight text-zona-b-foreground sm:text-2xl">
           {cartilla.nombre}
         </h1>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
               variant="outline"
-              className="h-11 shrink-0 rounded-full border-2 border-amber-300 bg-white px-4 text-base font-semibold text-slate-700 shadow-sm hover:bg-amber-50"
+              className="h-11 shrink-0 rounded-full border-2 border-zona-b-border-soft bg-zona-b-surface-raised px-4 text-base font-semibold text-zona-b-foreground-muted shadow-sm hover:bg-zona-b-surface"
             >
               <X className="size-5" aria-hidden="true" />
               Salir
@@ -129,7 +145,7 @@ export function ModoUso() {
               <AlertDialogTitle>¿Salir del modo de uso?</AlertDialogTitle>
               <AlertDialogDescription>
                 {cantidadPalabras > 0
-                  ? 'Tenés una frase armada. Si salís, se pierde y se corta el audio.'
+                  ? 'Tenés una frase armada. Si salís, se corta el audio, pero la frase queda guardada para cuando vuelvas.'
                   : 'Si salís, volvemos a la cartilla y se corta el audio.'}
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -143,18 +159,20 @@ export function ModoUso() {
 
       <BarraFrase
         frase={frase}
+        puedeDeshacer={borrada !== null}
         onDecir={decirFrase}
         onBorrarUltima={borrarUltima}
         onLimpiar={limpiar}
         onRemoverIndice={removerIndice}
+        onDeshacer={deshacer}
       />
 
       {categorias.length === 0 ? (
         <div className="flex flex-1 items-center justify-center p-6">
           <div className="flex max-w-sm flex-col items-center gap-4 text-center">
-            <LayoutGrid className="size-12 text-amber-500" aria-hidden="true" />
-            <p className="text-xl font-bold text-slate-800">Esta cartilla no tiene categorías</p>
-            <p className="text-base text-slate-600">
+            <LayoutGrid className="size-12 text-zona-b-accent" aria-hidden="true" />
+            <p className="text-xl font-bold text-zona-b-foreground">Esta cartilla no tiene categorías</p>
+            <p className="text-base text-zona-b-foreground-muted">
               Pedile a tu terapeuta que le agregue pictogramas para empezar a usarla.
             </p>
             <Button asChild>
@@ -167,7 +185,7 @@ export function ModoUso() {
           {/* Strip horizontal de categorías (<md): scrollable, pills redondeadas */}
           <nav
             aria-label="Categorías"
-            className="flex shrink-0 gap-2 overflow-x-auto border-b-2 border-amber-200 bg-amber-100/60 px-3 py-2 md:hidden"
+            className="flex shrink-0 gap-2 overflow-x-auto border-b-2 border-zona-b-border bg-zona-b-nav px-3 py-2 md:hidden"
           >
             {categorias.map((categoria) => {
               const activa = categoria.id === categoriaActiva?.id
@@ -198,7 +216,7 @@ export function ModoUso() {
           {/* Nav vertical de categorías (≥md): lateral como siempre */}
           <nav
             aria-label="Categorías"
-            className="hidden w-40 shrink-0 flex-col gap-2 overflow-y-auto border-r-2 border-amber-200 bg-amber-100/60 p-3 md:flex sm:w-48"
+            className="hidden w-40 shrink-0 flex-col gap-2 overflow-y-auto border-r-2 border-zona-b-border bg-zona-b-nav p-3 md:flex sm:w-48"
           >
             {categorias.map((categoria) => {
               const activa = categoria.id === categoriaActiva?.id
@@ -230,15 +248,15 @@ export function ModoUso() {
             {items.length === 0 ? (
               <div className="flex flex-1 items-center justify-center p-6">
                 <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-                  <LayoutGrid className="size-10 text-amber-400" aria-hidden="true" />
-                  <p className="text-lg font-bold text-slate-700">
+                  <LayoutGrid className="size-10 text-zona-b-accent" aria-hidden="true" />
+                  <p className="text-lg font-bold text-zona-b-foreground-muted">
                     No hay pictogramas en esta categoría
                   </p>
                 </div>
               </div>
             ) : (
               <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
-                <div className="mx-auto grid max-w-[1400px] grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 xl:grid-cols-5">
+                <div className={CLASE_GRID_TABLERO}>
                   {items.map((item) => (
                     <PictogramaTile
                       key={item.id}
@@ -273,10 +291,10 @@ function PantallaError({
   volverA: string
 }) {
   return (
-    <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-amber-50 p-6 text-center">
-      <Frown className="size-12 text-amber-500" aria-hidden="true" />
-      <p className="text-xl font-bold text-slate-800">{mensaje}</p>
-      <p className="text-base text-slate-600">Revisá la conexión y probá de nuevo.</p>
+    <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-zona-b-surface p-6 text-center">
+      <Frown className="size-12 text-zona-b-accent" aria-hidden="true" />
+      <p className="text-xl font-bold text-zona-b-foreground">{mensaje}</p>
+      <p className="text-base text-zona-b-foreground-muted">Revisá la conexión y probá de nuevo.</p>
       <div className="mt-2 flex flex-wrap justify-center gap-2">
         {onReintentar && (
           <Button variant="outline" onClick={onReintentar}>
